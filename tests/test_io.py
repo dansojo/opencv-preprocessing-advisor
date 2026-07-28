@@ -3,7 +3,12 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from opencv_preprocessing_advisor.io import decode_image, encode_png, validate_bgr_image
+from opencv_preprocessing_advisor.io import (
+    decode_image,
+    decode_image_bytes,
+    encode_png,
+    validate_bgr_image,
+)
 
 
 def test_unicode_path_round_trip(tmp_path: Path):
@@ -25,3 +30,11 @@ def test_validate_rejects_float_image():
 def test_decode_rejects_missing_path(tmp_path: Path):
     with pytest.raises(FileNotFoundError):
         decode_image(tmp_path / "missing.png")
+
+
+def test_decode_image_bytes_round_trip():
+    image = np.full((12, 14, 3), 91, np.uint8)
+
+    loaded = decode_image_bytes(encode_png(image))
+
+    assert np.array_equal(loaded, image)

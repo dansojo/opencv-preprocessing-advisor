@@ -29,6 +29,16 @@ def decode_image(path: Path | str) -> np.ndarray:
     return image
 
 
+def decode_image_bytes(data: bytes) -> np.ndarray:
+    if not data:
+        raise ValueError("image data must not be empty")
+    image = cv2.imdecode(np.frombuffer(data, dtype=np.uint8), cv2.IMREAD_COLOR)
+    if image is None:
+        raise ValueError("unable to decode uploaded image")
+    validate_bgr_image(image)
+    return image
+
+
 def encode_png(image: np.ndarray) -> bytes:
     validate_bgr_image(image)
     ok, encoded = cv2.imencode(".png", image)
