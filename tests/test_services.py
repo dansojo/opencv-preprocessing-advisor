@@ -1,0 +1,60 @@
+from pathlib import Path
+
+import cv2
+import numpy as np
+
+from opencv_preprocessing_advisor.datasets import discover_dataset
+from opencv_preprocessing_advisor.io import encode_png
+from opencv_preprocessing_advisor.models import TaskProfile
+from opencv_preprocessing_advisor.services import (
+    BenchmarkConfig,
+    BenchmarkService,
+    ImageAdvisorService,
+)
+
+
+def test_image_advisor_returns_three_explained_results(sample_bgr):
+    result = ImageAdvisorService().analyze(sample_bgr, TaskProfile.AUTO)
+
+    assert len(result.recommendations) == 3
+    for item in result.recommendations:
+        assert item.reasons
+        assert item.score_components
+        assert item.pipeline_run.intermediate_images
+
+
+def make_shape_dataset(root: Path) -> Path:
+    for class_name in ("circle", "square"):
+        class_dir = root / class_name
+        class_dir.mkdir(parents=True)
+        for index in range(6):
+            image = np.full((96, 96, 3), 30 + index, np.uint8)
+            if class_name == "circle":
+                cv2.circle(image, (48, 48), 20 + index, (230, 230, 230), -1)
+            else:
+                cv2.rectangle(
+                    image,
+                    (25 - index, 25 - index),
+                    (70 + index, 70 + index),
+                    (230, 230, 230),
+                    -1,
+                )
+            (class_dir / f"{index}.png").write_bytes(encode_png(image))
+    return root
+
+
+def test_benchmark_service_ranks_requested_combinations(tmp_path):
+    manifest = discover_dataset(make_shape_dataset(tmp_path / "dataset"))
+    config = BenchmarkConfig(
+        pipeline_ids=("original", "lab-clahe"),
+        feature_profiles=("shape",),
+        classifier_names=("svm",),
+        folds=3,
+        seed=42,
+    )
+
+    result = BenchmarkService().run(manifest, config)
+
+    assert len(result.entries) == 2
+    assert len(result.top_entries) == 2
+    assert result.entries[0].cross_validation.folds
