@@ -1,5 +1,6 @@
 """Single-image recommendation page."""
 
+import json
 from dataclasses import asdict
 from io import BytesIO
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -38,6 +39,31 @@ def _step_zip(result) -> bytes:
                     encode_png(step.image),
                 )
     return buffer.getvalue()
+
+
+def _advice_json(result) -> bytes:
+    payload = {
+        "profile": result.profile.value,
+        "opencv_version": result.opencv_version,
+        "pipeline_config_hash": result.pipeline_config_hash,
+        "scoring_config_hash": result.scoring_config_hash,
+        "original_diagnostics": asdict(result.original_diagnostics),
+        "recommendations": [
+            {
+                "rank": rank,
+                "pipeline_id": recommendation.pipeline_id,
+                "score": recommendation.suitability_score,
+                "reasons": recommendation.reasons,
+                "warnings": recommendation.warnings,
+                "score_components": [
+                    asdict(component) for component in recommendation.score_components
+                ],
+                "processing_ms": recommendation.pipeline_run.processing_ms,
+            }
+            for rank, recommendation in enumerate(result.recommendations, start=1)
+        ],
+    }
+    return json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
 
 
 def render() -> None:
@@ -127,4 +153,10 @@ def render() -> None:
         data=original_frame.to_csv(index=False).encode("utf-8-sig"),
         file_name="image_diagnostics.csv",
         mime="text/csv",
+    )
+    st.download_button(
+        "추천 JSON 다운로드",
+        data=_advice_json(result),
+        file_name="opencv_preprocessing_advice.json",
+        mime="application/json",
     )

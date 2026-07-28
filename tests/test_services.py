@@ -2,6 +2,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+import pytest
 
 from opencv_preprocessing_advisor.datasets import discover_dataset
 from opencv_preprocessing_advisor.io import encode_png
@@ -58,3 +59,28 @@ def test_benchmark_service_ranks_requested_combinations(tmp_path):
     assert len(result.entries) == 2
     assert len(result.top_entries) == 2
     assert result.entries[0].cross_validation.folds
+
+
+@pytest.mark.parametrize(
+    ("field", "message"),
+    [
+        ("pipeline_ids", "pipeline"),
+        ("feature_profiles", "feature"),
+        ("classifier_names", "classifier"),
+    ],
+)
+def test_benchmark_service_rejects_empty_comparison_dimensions(
+    tmp_path,
+    field,
+    message,
+):
+    manifest = discover_dataset(make_shape_dataset(tmp_path / "dataset"))
+    values = {
+        "pipeline_ids": ("original",),
+        "feature_profiles": ("shape",),
+        "classifier_names": ("svm",),
+    }
+    values[field] = ()
+
+    with pytest.raises(ValueError, match=message):
+        BenchmarkService().run(manifest, BenchmarkConfig(**values))

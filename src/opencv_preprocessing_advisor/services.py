@@ -135,6 +135,12 @@ class BenchmarkService:
         manifest: DatasetManifest,
         config: BenchmarkConfig,
     ) -> BenchmarkResult:
+        if not config.pipeline_ids:
+            raise ValueError("select at least one preprocessing pipeline")
+        if not config.feature_profiles:
+            raise ValueError("select at least one feature profile")
+        if not config.classifier_names:
+            raise ValueError("select at least one classifier")
         source_images = [decode_image(sample.path) for sample in manifest.samples]
         labels = manifest.labels
         folds = stratified_folds(labels, config.folds, config.seed)
