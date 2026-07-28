@@ -1,0 +1,110 @@
+pipelines:
+  - id: baseline-normalize
+    display_name_ko: 기본 정규화
+    display_name_en: Baseline Normalize
+    profiles: [auto, shape, color, texture]
+    rationale_codes: [stable_baseline]
+    warning_codes: []
+    steps:
+      - transform: normalize
+        params: {}
+
+  - id: lab-clahe
+    display_name_ko: LAB 국소 대비 향상
+    display_name_en: LAB Local Contrast
+    profiles: [auto, shape, color, texture]
+    rationale_codes: [low_local_contrast]
+    warning_codes: [may_amplify_texture]
+    steps:
+      - transform: lab_clahe
+        params: {clip_limit: 2.0, grid_size: 8}
+
+  - id: auto-gamma
+    display_name_ko: 자동 감마 보정
+    display_name_en: Automatic Gamma Balance
+    profiles: [auto, color]
+    rationale_codes: [unbalanced_exposure]
+    warning_codes: [may_shift_tones]
+    steps:
+      - transform: auto_gamma
+        params: {target_midpoint: 0.5}
+
+  - id: gaussian-clean
+    display_name_ko: 가우시안 노이즈 완화
+    display_name_en: Gaussian Denoise
+    profiles: [auto, shape, texture]
+    rationale_codes: [high_frequency_noise]
+    warning_codes: [may_blur_edges]
+    steps:
+      - transform: gaussian
+        params: {kernel_size: 5, sigma: 0.8}
+
+  - id: median-clean
+    display_name_ko: 임펄스 노이즈 완화
+    display_name_en: Median Denoise
+    profiles: [auto, shape, texture]
+    rationale_codes: [impulse_noise]
+    warning_codes: [may_remove_small_detail]
+    steps:
+      - transform: median
+        params: {kernel_size: 5}
+
+  - id: bilateral-detail
+    display_name_ko: 경계 보존 평활화
+    display_name_en: Edge-Preserving Bilateral
+    profiles: [auto, shape, color, texture]
+    rationale_codes: [noise_with_edges]
+    warning_codes: [higher_processing_cost]
+    steps:
+      - transform: bilateral
+        params: {diameter: 7, sigma_color: 45, sigma_space: 45}
+
+  - id: clahe-bilateral
+    display_name_ko: 국소 대비와 경계 보존
+    display_name_en: CLAHE plus Bilateral
+    profiles: [auto, shape, color, texture]
+    rationale_codes: [low_contrast_and_noise]
+    warning_codes: [may_amplify_texture, higher_processing_cost]
+    steps:
+      - transform: lab_clahe
+        params: {clip_limit: 2.0, grid_size: 8}
+      - transform: bilateral
+        params: {diameter: 7, sigma_color: 40, sigma_space: 40}
+
+  - id: unsharp-detail
+    display_name_ko: 디테일 선명화
+    display_name_en: Controlled Unsharp Detail
+    profiles: [auto, shape, texture]
+    rationale_codes: [low_sharpness]
+    warning_codes: [may_amplify_noise]
+    steps:
+      - transform: unsharp
+        params: {kernel_size: 5, sigma: 1.0, amount: 0.8, threshold: 3}
+
+  - id: gray-clahe-unsharp
+    display_name_ko: 형태 중심 대비·선명화
+    display_name_en: Shape-Focused Gray Detail
+    profiles: [shape, texture]
+    rationale_codes: [shape_priority]
+    warning_codes: [color_information_removed]
+    steps:
+      - transform: gray_bgr
+        params: {}
+      - transform: lab_clahe
+        params: {clip_limit: 2.0, grid_size: 8}
+      - transform: unsharp
+        params: {kernel_size: 5, sigma: 1.0, amount: 0.7, threshold: 2}
+
+  - id: texture-blackhat
+    display_name_ko: 어두운 국소 질감 강조
+    display_name_en: Dark Local Texture Emphasis
+    profiles: [texture, shape]
+    rationale_codes: [dark_local_structure]
+    warning_codes: [not_natural_color_output]
+    steps:
+      - transform: gray_bgr
+        params: {}
+      - transform: blackhat
+        params: {kernel_size: 9, shape: ellipse}
+      - transform: normalize
+        params: {}
