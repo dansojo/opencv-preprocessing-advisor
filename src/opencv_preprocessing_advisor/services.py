@@ -8,6 +8,7 @@ from pathlib import Path
 from time import perf_counter
 
 import cv2
+import numpy as np
 
 from .datasets import DatasetManifest, stratified_folds
 from .diagnostics import analyze_image
@@ -35,7 +36,7 @@ def _file_hash(path: Path) -> str:
 @dataclass(frozen=True)
 class ImageAdviceResult:
     profile: TaskProfile
-    original_image: object
+    original_image: np.ndarray
     original_diagnostics: ImageDiagnostics
     recommendations: tuple[Recommendation, ...]
     opencv_version: str

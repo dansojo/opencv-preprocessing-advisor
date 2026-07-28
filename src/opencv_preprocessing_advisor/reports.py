@@ -15,6 +15,7 @@ import matplotlib
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
 from .io import encode_png
@@ -135,7 +136,14 @@ class ReportWriter:
         temporary, final = self._atomic_directory("benchmark")
         rows = []
         fold_rows = []
+        class_rows = []
+        timing_rows = []
+        matrices_root = temporary / "confusion_matrices"
+        matrices_root.mkdir()
         for rank, entry in enumerate(result.entries, start=1):
+            entry_key = (
+                f"{rank:02d}_{entry.pipeline_id}_{entry.feature_profile}_{entry.classifier_name}"
+            )
             rows.append(
                 {
                     "rank": rank,
@@ -165,8 +173,49 @@ class ReportWriter:
                         "predict_ms": fold.predict_ms,
                     }
                 )
+                for metric in fold.metrics.per_class:
+                    class_rows.append(
+                        {
+                            "pipeline_id": entry.pipeline_id,
+                            "feature_profile": entry.feature_profile,
+                            "classifier": entry.classifier_name,
+                            "fold": fold.fold_index,
+                            "class_name": result.manifest.class_names[metric.class_index],
+                            "precision": metric.precision,
+                            "recall": metric.recall,
+                            "f1": metric.f1,
+                            "support": metric.support,
+                        }
+                    )
+            timing_rows.append(
+                {
+                    "pipeline_id": entry.pipeline_id,
+                    "feature_profile": entry.feature_profile,
+                    "classifier": entry.classifier_name,
+                    "preprocessing_ms": entry.preprocessing_ms,
+                    "feature_extraction_ms": entry.feature_extraction_ms,
+                    "mean_fit_ms": float(
+                        np.mean([fold.fit_ms for fold in entry.cross_validation.folds])
+                    ),
+                    "mean_predict_ms": float(
+                        np.mean([fold.predict_ms for fold in entry.cross_validation.folds])
+                    ),
+                }
+            )
+            aggregate_matrix = np.sum(
+                [fold.metrics.confusion_matrix for fold in entry.cross_validation.folds],
+                axis=0,
+            )
+            self._write_confusion_matrix(
+                aggregate_matrix,
+                result.manifest.class_names,
+                matrices_root / f"{entry_key}.png",
+                title=(f"{entry.pipeline_id} | {entry.feature_profile} | {entry.classifier_name}"),
+            )
         pd.DataFrame(rows).to_csv(temporary / "leaderboard.csv", index=False)
         pd.DataFrame(fold_rows).to_csv(temporary / "fold_metrics.csv", index=False)
+        pd.DataFrame(class_rows).to_csv(temporary / "class_metrics.csv", index=False)
+        pd.DataFrame(timing_rows).to_csv(temporary / "timings.csv", index=False)
         metadata = {
             "generated_at": datetime.now(UTC).isoformat(),
             "opencv_version": result.opencv_version,
@@ -182,3 +231,38 @@ class ReportWriter:
             encoding="utf-8",
         )
         return self._commit_directory(temporary, final)
+
+    @staticmethod
+    def _write_confusion_matrix(
+        matrix: np.ndarray,
+        class_names: tuple[str, ...],
+        output: Path,
+        title: str,
+    ) -> None:
+        figure, axis = plt.subplots(figsize=(max(5, len(class_names)), 4.5))
+        image = axis.imshow(matrix, cmap="Blues")
+        axis.set(
+            title=title,
+            xlabel="Predicted",
+            ylabel="Actual",
+            xticks=np.arange(len(class_names)),
+            yticks=np.arange(len(class_names)),
+            xticklabels=class_names,
+            yticklabels=class_names,
+        )
+        plt.setp(axis.get_xticklabels(), rotation=35, ha="right")
+        threshold = float(matrix.max()) / 2 if matrix.size else 0.0
+        for row in range(matrix.shape[0]):
+            for column in range(matrix.shape[1]):
+                axis.text(
+                    column,
+                    row,
+                    int(matrix[row, column]),
+                    ha="center",
+                    va="center",
+                    color="white" if matrix[row, column] > threshold else "black",
+                )
+        figure.colorbar(image, ax=axis, fraction=0.046, pad=0.04)
+        figure.tight_layout()
+        figure.savefig(output, dpi=140, bbox_inches="tight")
+        plt.close(figure)
