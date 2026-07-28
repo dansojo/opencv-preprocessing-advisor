@@ -56,13 +56,16 @@ def test_benchmark_report_contains_detailed_metrics_and_confusion_matrices(tmp_p
     output = ReportWriter(tmp_path / "reports").write_benchmark(result)
 
     assert (output / "leaderboard.csv").exists()
+    assert (output / "top_pipelines.csv").exists()
     assert (output / "fold_metrics.csv").exists()
     assert (output / "class_metrics.csv").exists()
     assert (output / "timings.csv").exists()
     matrices = list((output / "confusion_matrices").glob("*.png"))
+    top_pipelines = pd.read_csv(output / "top_pipelines.csv")
     metadata = json.loads((output / "run_config.json").read_text(encoding="utf-8"))
 
     assert len(matrices) == 1
+    assert top_pipelines["pipeline_id"].is_unique
     assert metadata["pipeline_ids"] == ["original"]
     assert metadata["feature_profiles"] == ["shape"]
     assert metadata["classifier_names"] == ["svm"]

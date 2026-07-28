@@ -106,6 +106,7 @@ outputs/
 │  ├─ recommendations.json
 │  └─ steps/<pipeline-id>/*.png
 └─ benchmark/<run-id>/
+   ├─ top_pipelines.csv
    ├─ leaderboard.csv
    ├─ fold_metrics.csv
    ├─ class_metrics.csv

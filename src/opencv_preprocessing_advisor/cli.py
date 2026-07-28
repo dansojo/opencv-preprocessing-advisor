@@ -93,12 +93,13 @@ def _benchmark(args: argparse.Namespace) -> int:
     result = BenchmarkService().run(manifest, config)
     report = ReportWriter(args.output).write_benchmark(result)
     print(f"Benchmark report: {report}")
-    print(
-        f"Best: {result.top_entries[0].pipeline_id} / "
-        f"{result.top_entries[0].feature_profile} / "
-        f"{result.top_entries[0].classifier_name} "
-        f"(macro F1={result.top_entries[0].cross_validation.mean_macro_f1:.3f})"
-    )
+    print("Top preprocessing pipelines:")
+    for rank, entry in enumerate(result.top_entries, start=1):
+        print(
+            f"{rank}. {entry.pipeline_id} / {entry.feature_profile} / "
+            f"{entry.classifier_name} "
+            f"(macro F1={entry.cross_validation.mean_macro_f1:.3f})"
+        )
     return 0
 
 

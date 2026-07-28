@@ -245,6 +245,24 @@ class ReportWriter:
                 title=(f"{entry.pipeline_id} | {entry.feature_profile} | {entry.classifier_name}"),
             )
         pd.DataFrame(rows).to_csv(temporary / "leaderboard.csv", index=False)
+        top_pipeline_rows = []
+        for rank, entry in enumerate(result.top_entries, start=1):
+            top_pipeline_rows.append(
+                {
+                    "rank": rank,
+                    "pipeline_id": entry.pipeline_id,
+                    "best_feature_profile": entry.feature_profile,
+                    "best_classifier": entry.classifier_name,
+                    "mean_accuracy": entry.cross_validation.mean_accuracy,
+                    "std_accuracy": entry.cross_validation.std_accuracy,
+                    "mean_macro_f1": entry.cross_validation.mean_macro_f1,
+                    "std_macro_f1": entry.cross_validation.std_macro_f1,
+                }
+            )
+        pd.DataFrame(top_pipeline_rows).to_csv(
+            temporary / "top_pipelines.csv",
+            index=False,
+        )
         pd.DataFrame(fold_rows).to_csv(temporary / "fold_metrics.csv", index=False)
         pd.DataFrame(class_rows).to_csv(temporary / "class_metrics.csv", index=False)
         pd.DataFrame(timing_rows).to_csv(temporary / "timings.csv", index=False)

@@ -55,6 +55,31 @@ def _leaderboard(result) -> pd.DataFrame:
     )
 
 
+def _top_pipeline_table(result) -> pd.DataFrame:
+    frame = _leaderboard(result)
+    positions = {
+        (
+            entry.pipeline_id,
+            entry.feature_profile,
+            entry.classifier_name,
+        ): rank
+        for rank, entry in enumerate(result.top_entries, start=1)
+    }
+    keys = list(
+        zip(
+            frame["pipeline"],
+            frame["features"],
+            frame["classifier"],
+            strict=True,
+        )
+    )
+    selected = frame.assign(
+        rank=[positions.get(key) for key in keys],
+    ).dropna(subset=["rank"])
+    selected["rank"] = selected["rank"].astype(int)
+    return selected.sort_values("rank").reset_index(drop=True)
+
+
 def _aggregate_confusion(entry) -> np.ndarray:
     return np.sum(
         [fold.metrics.confusion_matrix for fold in entry.cross_validation.folds],
@@ -203,11 +228,17 @@ def render() -> None:
     if result is None:
         return
     frame = _leaderboard(result)
-    st.subheader("파이프라인 순위")
+    st.subheader("추천 전처리 파이프라인 Top 3")
+    st.dataframe(
+        _top_pipeline_table(result),
+        hide_index=True,
+        use_container_width=True,
+    )
+    st.subheader("전체 파이프라인·특징·분류기 조합")
     st.dataframe(frame, hide_index=True, use_container_width=True)
     st.caption(f"리포트 저장 위치: {st.session_state.get('benchmark_report')}")
     st.download_button(
-        "Leaderboard CSV 다운로드",
+        "전체 조합 Leaderboard CSV 다운로드",
         data=frame.to_csv(index=False).encode("utf-8-sig"),
         file_name="benchmark_leaderboard.csv",
         mime="text/csv",

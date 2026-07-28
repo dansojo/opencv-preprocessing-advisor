@@ -117,9 +117,11 @@ WARNING_TEXT = {
 
 
 def _reason_text(component: ScoreComponent) -> str:
-    if component.value > 50.0 + 1e-6:
+    if component.value > 52.0:
         return REASON_TEXT[component.name]
-    return f"{component.name} 지표가 기준선과 비슷한 수준으로 유지되었습니다."
+    if component.value >= 48.0:
+        return f"{component.name} 지표가 기준선과 비슷한 수준으로 유지되었습니다."
+    return f"{component.name} 지표가 기준선보다 낮아져 강한 긍정 근거로 보기 어렵습니다."
 
 
 def _bounded_improvement(before: float, after: float, scale: float = 50.0) -> float:

@@ -103,6 +103,29 @@ def test_unchanged_metrics_do_not_claim_an_improvement():
     assert all("개선" not in reason and "향상" not in reason for reason in recommendation.reasons)
 
 
+def test_declined_metrics_are_not_described_as_maintained():
+    recommendation = rank_recommendations(
+        [
+            scored_pipeline(
+                "declined",
+                diagnostics(
+                    local_contrast=1.0,
+                    entropy=1.0,
+                    noise_estimate=50.0,
+                    sharpness=5.0,
+                    edge_continuity=0.05,
+                    dark_clip_ratio=0.2,
+                ),
+            )
+        ],
+        TaskProfile.AUTO,
+        limit=1,
+    )[0]
+
+    assert any("낮아" in reason for reason in recommendation.reasons)
+    assert all("유지" not in reason for reason in recommendation.reasons)
+
+
 def test_scoring_config_rejects_weights_that_do_not_sum_to_one(tmp_path):
     path = tmp_path / "scoring.yaml"
     path.write_text(
