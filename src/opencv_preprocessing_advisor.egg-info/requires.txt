@@ -1,6 +1,0 @@
-opencv-python>=4.10
-numpy>=2.0
-pandas>=2.2
-matplotlib>=3.9
-streamlit>=1.45
-PyYAML>=6.0

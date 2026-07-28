@@ -1,2 +1,0 @@
-[console_scripts]
-opencv-prep = opencv_preprocessing_advisor.cli:main

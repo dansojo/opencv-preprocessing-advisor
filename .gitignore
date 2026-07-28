@@ -4,6 +4,7 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 *.pyc
+*.egg-info/
 outputs/*
 !outputs/.gitkeep
 data/classification/*
