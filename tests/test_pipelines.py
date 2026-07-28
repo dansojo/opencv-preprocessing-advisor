@@ -1,11 +1,10 @@
-from pathlib import Path
-
 import numpy as np
 import pytest
 
 from opencv_preprocessing_advisor.pipelines import PipelineCatalog
+from opencv_preprocessing_advisor.services import DEFAULT_PIPELINES_PATH
 
-CONFIG_PATH = Path(__file__).parents[1] / "config" / "pipelines.yaml"
+CONFIG_PATH = DEFAULT_PIPELINES_PATH
 
 
 def test_catalog_loads_ten_unique_pipelines():

@@ -10,6 +10,7 @@ from opencv_preprocessing_advisor.models import TaskProfile
 from opencv_preprocessing_advisor.services import ImageAdvisorService
 from ui.dataset_benchmark import _report_zip
 from ui.image_advisor import _advice_json
+from ui.technique_explorer import TECHNIQUE_GUIDANCE, _apply
 
 
 @pytest.mark.parametrize(
@@ -57,3 +58,15 @@ def test_report_zip_preserves_relative_artifact_paths(tmp_path):
         "leaderboard.csv",
         "confusion_matrices/best.png",
     }
+
+
+@pytest.mark.parametrize("operation", list(TECHNIQUE_GUIDANCE))
+def test_technique_explorer_operations_return_displayable_images(
+    operation,
+    sample_bgr,
+):
+    result, function_name = _apply(operation, sample_bgr, kernel=5)
+
+    assert result.shape == sample_bgr.shape
+    assert result.dtype == sample_bgr.dtype
+    assert function_name.startswith("cv2.")

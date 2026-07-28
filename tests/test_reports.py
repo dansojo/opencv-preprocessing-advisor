@@ -1,5 +1,6 @@
 import json
 
+import pandas as pd
 from test_services import make_shape_dataset
 
 from opencv_preprocessing_advisor.datasets import discover_dataset
@@ -17,12 +18,15 @@ def test_image_report_contains_reproducibility_metadata(tmp_path, sample_bgr):
 
     output = ReportWriter(tmp_path).write_image_advice(result)
     metadata = json.loads((output / "recommendations.json").read_text(encoding="utf-8"))
+    changes = pd.read_csv(output / "metric_changes.csv")
 
     assert metadata["opencv_version"]
     assert metadata["scoring_config_hash"]
     assert (output / "diagnostics.csv").exists()
     assert (output / "comparison.png").exists()
     assert len(list((output / "steps").glob("*/*.png"))) >= 3
+    assert {"before", "after", "absolute_delta", "percent_delta"} <= set(changes.columns)
+    assert len(changes) >= 3
 
 
 def test_report_runs_use_distinct_directories(tmp_path, sample_bgr):
@@ -56,4 +60,12 @@ def test_benchmark_report_contains_detailed_metrics_and_confusion_matrices(tmp_p
     assert (output / "class_metrics.csv").exists()
     assert (output / "timings.csv").exists()
     matrices = list((output / "confusion_matrices").glob("*.png"))
+    metadata = json.loads((output / "run_config.json").read_text(encoding="utf-8"))
+
     assert len(matrices) == 1
+    assert metadata["pipeline_ids"] == ["original"]
+    assert metadata["feature_profiles"] == ["shape"]
+    assert metadata["classifier_names"] == ["svm"]
+    assert metadata["actual_folds"] == 3
+    assert len(metadata["samples"]) == 12
+    assert len(metadata["fold_assignments"]) == 3

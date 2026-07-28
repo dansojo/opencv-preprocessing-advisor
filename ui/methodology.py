@@ -4,7 +4,10 @@ import pandas as pd
 import streamlit as st
 
 from opencv_preprocessing_advisor.models import TaskProfile
-from opencv_preprocessing_advisor.scoring import PROFILE_WEIGHTS
+from opencv_preprocessing_advisor.scoring import load_profile_weights
+from opencv_preprocessing_advisor.services import DEFAULT_SCORING_PATH
+
+PROFILE_WEIGHTS = load_profile_weights(DEFAULT_SCORING_PATH)
 
 
 def render() -> None:

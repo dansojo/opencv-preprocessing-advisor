@@ -3,11 +3,14 @@ from pathlib import Path
 import cv2
 import numpy as np
 import pytest
+import yaml
 
 from opencv_preprocessing_advisor.datasets import discover_dataset
 from opencv_preprocessing_advisor.io import encode_png
 from opencv_preprocessing_advisor.models import TaskProfile
 from opencv_preprocessing_advisor.services import (
+    DEFAULT_PIPELINES_PATH,
+    DEFAULT_SCORING_PATH,
     BenchmarkConfig,
     BenchmarkService,
     ImageAdvisorService,
@@ -22,6 +25,44 @@ def test_image_advisor_returns_three_explained_results(sample_bgr):
         assert item.reasons
         assert item.score_components
         assert item.pipeline_run.intermediate_images
+
+
+def test_default_configs_are_installed_inside_package():
+    package_directory = DEFAULT_PIPELINES_PATH.parent.parent
+
+    assert DEFAULT_PIPELINES_PATH.is_file()
+    assert DEFAULT_SCORING_PATH.is_file()
+    assert package_directory.name == "opencv_preprocessing_advisor"
+
+
+def test_profile_only_runs_compatible_pipelines(sample_bgr):
+    service = ImageAdvisorService()
+    result = service.analyze(sample_bgr, TaskProfile.COLOR)
+    definitions = {definition.pipeline_id: definition for definition in service.catalog.definitions}
+
+    assert all(
+        TaskProfile.COLOR in definitions[item.pipeline_id].profiles
+        for item in result.recommendations
+    )
+
+
+def test_image_advisor_uses_weights_from_scoring_config(tmp_path, sample_bgr):
+    config = yaml.safe_load(DEFAULT_SCORING_PATH.read_text(encoding="utf-8"))
+    config["profiles"]["auto"] = {"sharpness": 1.0}
+    scoring_path = tmp_path / "scoring.yaml"
+    scoring_path.write_text(
+        yaml.safe_dump(config, sort_keys=False),
+        encoding="utf-8",
+    )
+
+    result = ImageAdvisorService(scoring_path=scoring_path).analyze(
+        sample_bgr,
+        TaskProfile.AUTO,
+    )
+
+    for recommendation in result.recommendations:
+        assert [item.name for item in recommendation.score_components] == ["sharpness"]
+        assert recommendation.score_components[0].weight == 1.0
 
 
 def make_shape_dataset(root: Path) -> Path:
@@ -49,15 +90,16 @@ def test_benchmark_service_ranks_requested_combinations(tmp_path):
     config = BenchmarkConfig(
         pipeline_ids=("original", "lab-clahe"),
         feature_profiles=("shape",),
-        classifier_names=("svm",),
+        classifier_names=("svm", "knn"),
         folds=3,
         seed=42,
     )
 
     result = BenchmarkService().run(manifest, config)
 
-    assert len(result.entries) == 2
+    assert len(result.entries) == 4
     assert len(result.top_entries) == 2
+    assert len({entry.pipeline_id for entry in result.top_entries}) == 2
     assert result.entries[0].cross_validation.folds
 
 

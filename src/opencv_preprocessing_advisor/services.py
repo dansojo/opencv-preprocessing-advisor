@@ -10,7 +10,7 @@ from time import perf_counter
 import cv2
 import numpy as np
 
-from .datasets import DatasetManifest, stratified_folds
+from .datasets import DatasetManifest, Fold, stratified_folds
 from .diagnostics import analyze_image
 from .evaluation import CrossValidationResult, cross_validate
 from .features import (
@@ -22,11 +22,11 @@ from .features import (
 from .io import decode_image
 from .models import ImageDiagnostics, Recommendation, TaskProfile
 from .pipelines import PipelineCatalog
-from .scoring import ScoredPipeline, rank_recommendations
+from .scoring import ScoredPipeline, load_profile_weights, rank_recommendations
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_PIPELINES_PATH = PROJECT_ROOT / "config" / "pipelines.yaml"
-DEFAULT_SCORING_PATH = PROJECT_ROOT / "config" / "scoring.yaml"
+PACKAGE_ROOT = Path(__file__).resolve().parent
+DEFAULT_PIPELINES_PATH = PACKAGE_ROOT / "config" / "pipelines.yaml"
+DEFAULT_SCORING_PATH = PACKAGE_ROOT / "config" / "scoring.yaml"
 
 
 def _file_hash(path: Path) -> str:
@@ -67,6 +67,7 @@ class BenchmarkEntry:
 class BenchmarkResult:
     manifest: DatasetManifest
     config: BenchmarkConfig
+    folds: tuple[Fold, ...]
     entries: tuple[BenchmarkEntry, ...]
     top_entries: tuple[BenchmarkEntry, ...]
     opencv_version: str
@@ -83,6 +84,7 @@ class ImageAdvisorService:
         self.pipeline_path = pipeline_path
         self.scoring_path = scoring_path
         self.catalog = catalog or PipelineCatalog.from_yaml(pipeline_path)
+        self.profile_weights = load_profile_weights(scoring_path)
 
     def analyze(self, image, profile: TaskProfile = TaskProfile.AUTO) -> ImageAdviceResult:
         before = analyze_image(image)
@@ -90,13 +92,18 @@ class ImageAdvisorService:
         definitions = {item.pipeline_id: item for item in self.catalog.definitions}
         for pipeline_id in self.catalog.pipeline_ids:
             definition = definitions[pipeline_id]
-            if profile not in definition.profiles and TaskProfile.AUTO not in definition.profiles:
+            if profile not in definition.profiles:
                 continue
             run = self.catalog.run(pipeline_id, image)
             after = analyze_image(run.output_image)
             run = replace(run, diagnostics_after=after)
             candidates.append(ScoredPipeline(run=run, before=before, after=after))
-        recommendations = rank_recommendations(candidates, profile, limit=3)
+        recommendations = rank_recommendations(
+            candidates,
+            profile,
+            limit=3,
+            profile_weights=self.profile_weights,
+        )
         return ImageAdviceResult(
             profile=profile,
             original_image=image.copy(),
@@ -189,11 +196,21 @@ class BenchmarkService:
                 entry.classifier_name,
             ),
         )
+        top_entries = []
+        seen_pipelines: set[str] = set()
+        for entry in ranked:
+            if entry.pipeline_id in seen_pipelines:
+                continue
+            top_entries.append(entry)
+            seen_pipelines.add(entry.pipeline_id)
+            if len(top_entries) == 3:
+                break
         return BenchmarkResult(
             manifest=manifest,
             config=config,
+            folds=tuple(folds),
             entries=tuple(ranked),
-            top_entries=tuple(ranked[:3]),
+            top_entries=tuple(top_entries),
             opencv_version=cv2.__version__,
             pipeline_config_hash=_file_hash(self.pipeline_path),
         )

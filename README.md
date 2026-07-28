@@ -102,6 +102,7 @@ outputs/
 ├─ image_advisor/<run-id>/
 │  ├─ comparison.png
 │  ├─ diagnostics.csv
+│  ├─ metric_changes.csv
 │  ├─ recommendations.json
 │  └─ steps/<pipeline-id>/*.png
 └─ benchmark/<run-id>/
@@ -133,4 +134,3 @@ python -m opencv_preprocessing_advisor.cli self-check
 ```
 
 현재 구현은 딥러닝, 외부 비전 API, 이상치 GT 평가를 사용하지 않습니다. 단일 이미지 추천과 데이터셋 성능 검증의 역할을 분리한 것이 설계의 핵심입니다. 알려진 환경 문제는 [TROUBLESHOOTING.md](TROUBLESHOOTING.md)를 참고하세요.
-

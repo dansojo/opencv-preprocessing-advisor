@@ -8,6 +8,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 import pandas as pd
 import streamlit as st
 
+from opencv_preprocessing_advisor.diagnostics import compare_diagnostics
 from opencv_preprocessing_advisor.io import decode_image_bytes, encode_png
 from opencv_preprocessing_advisor.models import TaskProfile
 from opencv_preprocessing_advisor.services import ImageAdvisorService
@@ -58,6 +59,17 @@ def _advice_json(result) -> bytes:
                 "score_components": [
                     asdict(component) for component in recommendation.score_components
                 ],
+                "metric_changes": (
+                    [
+                        asdict(change)
+                        for change in compare_diagnostics(
+                            result.original_diagnostics,
+                            recommendation.pipeline_run.diagnostics_after,
+                        ).values()
+                    ]
+                    if recommendation.pipeline_run.diagnostics_after is not None
+                    else []
+                ),
                 "processing_ms": recommendation.pipeline_run.processing_ms,
             }
             for rank, recommendation in enumerate(result.recommendations, start=1)
@@ -133,6 +145,19 @@ def render() -> None:
                 [asdict(component) for component in recommendation.score_components]
             )
             st.bar_chart(components.set_index("name")["weighted_value"])
+            diagnostics_after = recommendation.pipeline_run.diagnostics_after
+            if diagnostics_after is not None:
+                changes = pd.DataFrame(
+                    [
+                        asdict(change)
+                        for change in compare_diagnostics(
+                            result.original_diagnostics,
+                            diagnostics_after,
+                        ).values()
+                    ]
+                )
+                st.markdown("**수치 변화 — 전/후·절대값·백분율**")
+                st.dataframe(changes, hide_index=True, use_container_width=True)
             with st.expander("단계별 이미지와 파라미터"):
                 for step in recommendation.pipeline_run.intermediate_images:
                     st.image(

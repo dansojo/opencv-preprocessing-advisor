@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
+import yaml
 
 from .models import (
     ImageDiagnostics,
@@ -57,6 +59,40 @@ PROFILE_WEIGHTS: dict[TaskProfile, dict[str, float]] = {
     },
 }
 
+SCORING_METRICS = frozenset(metric for weights in PROFILE_WEIGHTS.values() for metric in weights)
+
+
+def load_profile_weights(path: Path | str) -> dict[TaskProfile, dict[str, float]]:
+    payload = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(payload, dict) or not isinstance(payload.get("profiles"), dict):
+        raise TypeError("scoring config must contain a profiles mapping")
+    loaded: dict[TaskProfile, dict[str, float]] = {}
+    for profile_name, raw_weights in payload["profiles"].items():
+        try:
+            profile = TaskProfile(profile_name)
+        except ValueError as error:
+            raise ValueError(f"unsupported scoring profile: {profile_name}") from error
+        if not isinstance(raw_weights, dict) or not raw_weights:
+            raise ValueError(f"scoring profile '{profile.value}' must define weights")
+        weights: dict[str, float] = {}
+        for metric, raw_weight in raw_weights.items():
+            if metric not in SCORING_METRICS:
+                raise ValueError(f"unsupported scoring metric: {metric}")
+            if isinstance(raw_weight, bool) or not isinstance(raw_weight, (int, float)):
+                raise TypeError(f"weight for '{metric}' must be numeric")
+            weight = float(raw_weight)
+            if not np.isfinite(weight) or weight < 0:
+                raise ValueError(f"weight for '{metric}' must be finite and nonnegative")
+            weights[metric] = weight
+        if not np.isclose(sum(weights.values()), 1.0, atol=1e-9):
+            raise ValueError(f"weights for profile '{profile.value}' must sum to 1.0")
+        loaded[profile] = weights
+    missing = set(TaskProfile) - set(loaded)
+    if missing:
+        names = ", ".join(sorted(profile.value for profile in missing))
+        raise ValueError(f"scoring config is missing profiles: {names}")
+    return loaded
+
 
 REASON_TEXT = {
     "local_contrast": "국소 대비가 개선되었습니다.",
@@ -78,6 +114,12 @@ WARNING_TEXT = {
     "oversmoothing": "선명도가 크게 감소해 작은 구조가 사라질 수 있습니다.",
     "color_loss": "색상 정보가 크게 감소했습니다.",
 }
+
+
+def _reason_text(component: ScoreComponent) -> str:
+    if component.value > 50.0 + 1e-6:
+        return REASON_TEXT[component.name]
+    return f"{component.name} 지표가 기준선과 비슷한 수준으로 유지되었습니다."
 
 
 def _bounded_improvement(before: float, after: float, scale: float = 50.0) -> float:
@@ -138,8 +180,10 @@ def score_pipeline(
     before: ImageDiagnostics,
     after: ImageDiagnostics,
     profile: TaskProfile,
+    profile_weights: dict[TaskProfile, dict[str, float]] | None = None,
 ) -> ScoreBreakdown:
     values = _component_values(before, after)
+    weights = profile_weights or PROFILE_WEIGHTS
     components = tuple(
         ScoreComponent(
             name=name,
@@ -147,7 +191,7 @@ def score_pipeline(
             weight=weight,
             weighted_value=values[name] * weight,
         )
-        for name, weight in PROFILE_WEIGHTS[profile].items()
+        for name, weight in weights[profile].items()
     )
     warnings: list[str] = []
     if values["_clip_growth"] > 0.01 or after.dark_clip_ratio + after.bright_clip_ratio > 0.05:
@@ -175,17 +219,26 @@ def rank_recommendations(
     candidates: list[ScoredPipeline],
     profile: TaskProfile,
     limit: int = 3,
+    profile_weights: dict[TaskProfile, dict[str, float]] | None = None,
 ) -> list[Recommendation]:
     if limit <= 0:
         raise ValueError("limit must be positive")
     recommendations: list[Recommendation] = []
     for candidate in candidates:
-        breakdown = score_pipeline(candidate.before, candidate.after, profile)
+        breakdown = score_pipeline(
+            candidate.before,
+            candidate.after,
+            profile,
+            profile_weights,
+        )
+        components_by_name = {component.name: component for component in breakdown.components}
         recommendations.append(
             Recommendation(
                 pipeline_id=candidate.run.pipeline_id,
                 suitability_score=breakdown.total,
-                reasons=tuple(REASON_TEXT[code] for code in breakdown.reason_codes),
+                reasons=tuple(
+                    _reason_text(components_by_name[code]) for code in breakdown.reason_codes
+                ),
                 warnings=tuple(WARNING_TEXT[code] for code in breakdown.warning_codes),
                 reason_codes=breakdown.reason_codes,
                 warning_codes=breakdown.warning_codes,

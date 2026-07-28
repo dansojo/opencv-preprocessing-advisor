@@ -1,14 +1,16 @@
 """Classification dataset benchmark page."""
 
+from hashlib import sha256
 from io import BytesIO
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import numpy as np
 import pandas as pd
 import streamlit as st
 
-from opencv_preprocessing_advisor.datasets import discover_dataset
+from opencv_preprocessing_advisor.datasets import discover_dataset, extract_dataset_zip
 from opencv_preprocessing_advisor.pipelines import PipelineCatalog
 from opencv_preprocessing_advisor.reports import ReportWriter
 from opencv_preprocessing_advisor.services import (
@@ -88,11 +90,73 @@ def _report_zip(report: Path) -> bytes:
 def render() -> None:
     st.title("분류 데이터셋 벤치마크")
     st.write("클래스별 하위 폴더를 OpenCV 특징과 분류기로 교차검증합니다.")
-    dataset_path = st.text_input(
-        "데이터셋 폴더",
-        value=_suggested_dataset(),
-        placeholder="C:/path/to/dataset (하위 폴더가 클래스)",
+    source_mode = st.radio(
+        "입력 방식",
+        ["로컬 폴더", "ZIP 업로드"],
+        horizontal=True,
     )
+    dataset_path = ""
+    uploaded_zip = None
+    if source_mode == "로컬 폴더":
+        dataset_path = st.text_input(
+            "데이터셋 폴더",
+            value=_suggested_dataset(),
+            placeholder="C:/path/to/dataset (하위 폴더가 클래스)",
+        )
+        source_identity = f"path:{Path(dataset_path).resolve()}" if dataset_path else ""
+    else:
+        uploaded_zip = st.file_uploader(
+            "클래스 폴더가 포함된 ZIP",
+            type=["zip"],
+            key="benchmark-zip",
+        )
+        source_identity = (
+            f"zip:{sha256(uploaded_zip.getvalue()).hexdigest()}" if uploaded_zip is not None else ""
+        )
+
+    if st.button("1. 데이터셋 검증", disabled=not source_identity):
+        try:
+            if uploaded_zip is not None:
+                previous = st.session_state.pop("_dataset_tempdir", None)
+                if previous is not None:
+                    previous.cleanup()
+                temporary = TemporaryDirectory(prefix="opencv-prep-dataset-")
+                try:
+                    root = extract_dataset_zip(
+                        uploaded_zip.getvalue(),
+                        Path(temporary.name) / "dataset",
+                    )
+                    manifest = discover_dataset(root)
+                except Exception:
+                    temporary.cleanup()
+                    raise
+                st.session_state["_dataset_tempdir"] = temporary
+            else:
+                manifest = discover_dataset(Path(dataset_path))
+            st.session_state["validated_manifest"] = manifest
+            st.session_state["validated_source_identity"] = source_identity
+            st.session_state.pop("benchmark_result", None)
+            st.session_state.pop("benchmark_report", None)
+        except (FileNotFoundError, ValueError, KeyError) as error:
+            st.error(str(error))
+
+    manifest = (
+        st.session_state.get("validated_manifest")
+        if st.session_state.get("validated_source_identity") == source_identity
+        else None
+    )
+    if manifest is not None:
+        st.success(
+            f"검증 완료: {len(manifest.class_names)}개 클래스 / "
+            f"{len(manifest.samples)}장 / 건너뛴 파일 "
+            f"{len(manifest.skipped_files)}개"
+        )
+        class_counts = pd.Series([sample.class_name for sample in manifest.samples]).value_counts()
+        st.dataframe(
+            class_counts.rename_axis("class").reset_index(name="images"),
+            hide_index=True,
+        )
+
     pipeline_options = ["original", *_catalog().pipeline_ids]
     with st.form("benchmark-form"):
         pipelines = st.multiselect(
@@ -111,21 +175,15 @@ def render() -> None:
             default=["svm"],
         )
         folds = st.slider("교차검증 폴드", min_value=2, max_value=10, value=5)
-        submitted = st.form_submit_button("벤치마크 실행", type="primary")
+        submitted = st.form_submit_button(
+            "2. 벤치마크 실행",
+            type="primary",
+            disabled=manifest is None,
+        )
     if submitted:
         try:
-            manifest = discover_dataset(Path(dataset_path))
-            st.write(
-                f"{len(manifest.class_names)}개 클래스 / {len(manifest.samples)}장 / "
-                f"건너뛴 파일 {len(manifest.skipped_files)}개"
-            )
-            class_counts = pd.Series(
-                [sample.class_name for sample in manifest.samples]
-            ).value_counts()
-            st.dataframe(
-                class_counts.rename_axis("class").reset_index(name="images"),
-                hide_index=True,
-            )
+            if manifest is None:
+                raise ValueError("벤치마크 전에 데이터셋 검증을 완료하세요")
             config = BenchmarkConfig(
                 pipeline_ids=tuple(pipelines),
                 feature_profiles=tuple(features),

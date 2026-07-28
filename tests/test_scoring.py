@@ -1,11 +1,16 @@
 import numpy as np
+import pytest
 
 from opencv_preprocessing_advisor.models import (
     ImageDiagnostics,
     PipelineRun,
     TaskProfile,
 )
-from opencv_preprocessing_advisor.scoring import ScoredPipeline, rank_recommendations
+from opencv_preprocessing_advisor.scoring import (
+    ScoredPipeline,
+    load_profile_weights,
+    rank_recommendations,
+)
 
 
 def diagnostics(**overrides) -> ImageDiagnostics:
@@ -86,3 +91,24 @@ def test_ranking_is_deterministic_for_equal_scores():
     ranked = rank_recommendations(candidates, TaskProfile.AUTO, limit=2)
 
     assert [item.pipeline_id for item in ranked] == ["a-first", "z-last"]
+
+
+def test_unchanged_metrics_do_not_claim_an_improvement():
+    recommendation = rank_recommendations(
+        [scored_pipeline("unchanged", diagnostics())],
+        TaskProfile.AUTO,
+        limit=1,
+    )[0]
+
+    assert all("개선" not in reason and "향상" not in reason for reason in recommendation.reasons)
+
+
+def test_scoring_config_rejects_weights_that_do_not_sum_to_one(tmp_path):
+    path = tmp_path / "scoring.yaml"
+    path.write_text(
+        "profiles:\n  auto:\n    sharpness: 0.5\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="sum to 1.0"):
+        load_profile_weights(path)

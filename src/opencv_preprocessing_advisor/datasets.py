@@ -2,15 +2,21 @@
 
 from __future__ import annotations
 
+import shutil
+import stat
 from dataclasses import dataclass
 from hashlib import sha256
-from pathlib import Path
+from io import BytesIO
+from pathlib import Path, PurePosixPath
+from zipfile import BadZipFile, ZipFile
 
 import numpy as np
 
 from .io import decode_image
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff"}
+MAX_ZIP_FILES = 10_000
+MAX_ZIP_UNCOMPRESSED_BYTES = 1_000_000_000
 
 
 @dataclass(frozen=True)
@@ -45,6 +51,53 @@ class DatasetManifest:
 class Fold:
     train_indices: np.ndarray
     test_indices: np.ndarray
+
+
+def extract_dataset_zip(data: bytes, destination: Path | str) -> Path:
+    extraction_root = Path(destination)
+    if extraction_root.exists():
+        raise FileExistsError(f"ZIP destination already exists: {extraction_root}")
+    try:
+        archive = ZipFile(BytesIO(data))
+    except BadZipFile as error:
+        raise ValueError("uploaded file is not a valid ZIP archive") from error
+    with archive:
+        members = archive.infolist()
+        files = [member for member in members if not member.is_dir()]
+        if not files:
+            raise ValueError("ZIP archive contains no files")
+        if len(files) > MAX_ZIP_FILES:
+            raise ValueError(f"ZIP archive exceeds {MAX_ZIP_FILES} files")
+        if sum(member.file_size for member in files) > MAX_ZIP_UNCOMPRESSED_BYTES:
+            raise ValueError("ZIP archive exceeds the uncompressed size limit")
+        validated: list[tuple[object, PurePosixPath]] = []
+        for member in members:
+            path = PurePosixPath(member.filename.replace("\\", "/"))
+            if path.is_absolute() or ".." in path.parts or not path.parts or ":" in path.parts[0]:
+                raise ValueError(f"unsafe ZIP path: {member.filename}")
+            mode = member.external_attr >> 16
+            if stat.S_ISLNK(mode):
+                raise ValueError(f"ZIP symbolic links are not supported: {member.filename}")
+            if member.flag_bits & 0x1:
+                raise ValueError("encrypted ZIP members are not supported")
+            validated.append((member, path))
+
+        extraction_root.mkdir(parents=True)
+        for member, path in validated:
+            target = extraction_root.joinpath(*path.parts)
+            if member.is_dir():
+                target.mkdir(parents=True, exist_ok=True)
+                continue
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with archive.open(member) as source, target.open("wb") as output:
+                shutil.copyfileobj(source, output)
+
+    top_level = {path.parts[0] for _, path in validated if path.parts}
+    if len(top_level) == 1:
+        candidate = extraction_root / next(iter(top_level))
+        if candidate.is_dir():
+            return candidate
+    return extraction_root
 
 
 def discover_dataset(root: Path | str) -> DatasetManifest:

@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from .diagnostics import compare_diagnostics
 from .io import encode_png
 from .services import BenchmarkResult, ImageAdviceResult
 
@@ -52,6 +53,7 @@ class ReportWriter:
                     **asdict(result.original_diagnostics),
                 }
             ]
+            change_rows = []
             serialized_recommendations = []
             steps_root = temporary / "steps"
             for rank, recommendation in enumerate(result.recommendations, start=1):
@@ -65,6 +67,22 @@ class ReportWriter:
                         **asdict(diagnostics),
                     }
                 )
+                changes = compare_diagnostics(
+                    result.original_diagnostics,
+                    diagnostics,
+                )
+                for change in changes.values():
+                    change_rows.append(
+                        {
+                            "rank": rank,
+                            "pipeline_id": recommendation.pipeline_id,
+                            "metric": change.name,
+                            "before": change.before,
+                            "after": change.after,
+                            "absolute_delta": change.absolute_delta,
+                            "percent_delta": change.percent_delta,
+                        }
+                    )
                 serialized_recommendations.append(
                     {
                         "rank": rank,
@@ -91,6 +109,10 @@ class ReportWriter:
                     )
 
             pd.DataFrame(rows).to_csv(temporary / "diagnostics.csv", index=False)
+            pd.DataFrame(change_rows).to_csv(
+                temporary / "metric_changes.csv",
+                index=False,
+            )
             metadata = {
                 "generated_at": datetime.now(UTC).isoformat(),
                 "profile": result.profile.value,
@@ -154,6 +176,16 @@ class ReportWriter:
                     "std_accuracy": entry.cross_validation.std_accuracy,
                     "mean_macro_f1": entry.cross_validation.mean_macro_f1,
                     "std_macro_f1": entry.cross_validation.std_macro_f1,
+                    "mean_macro_precision": float(
+                        np.mean(
+                            [fold.metrics.macro_precision for fold in entry.cross_validation.folds]
+                        )
+                    ),
+                    "mean_macro_recall": float(
+                        np.mean(
+                            [fold.metrics.macro_recall for fold in entry.cross_validation.folds]
+                        )
+                    ),
                     "preprocessing_ms": entry.preprocessing_ms,
                     "feature_extraction_ms": entry.feature_extraction_ms,
                 }
@@ -224,7 +256,39 @@ class ReportWriter:
             "class_names": list(result.manifest.class_names),
             "sample_count": len(result.manifest.samples),
             "seed": result.config.seed,
-            "folds": result.config.folds,
+            "requested_folds": result.config.folds,
+            "actual_folds": len(result.folds),
+            "pipeline_ids": list(result.config.pipeline_ids),
+            "feature_profiles": list(result.config.feature_profiles),
+            "classifier_names": list(result.config.classifier_names),
+            "samples": [
+                {
+                    "relative_path": str(sample.path.relative_to(result.manifest.root)).replace(
+                        "\\", "/"
+                    ),
+                    "class_name": sample.class_name,
+                    "class_index": sample.class_index,
+                    "width": sample.width,
+                    "height": sample.height,
+                    "checksum": sample.checksum,
+                }
+                for sample in result.manifest.samples
+            ],
+            "skipped_files": [
+                {
+                    "path": str(item.path),
+                    "reason": item.reason,
+                }
+                for item in result.manifest.skipped_files
+            ],
+            "fold_assignments": [
+                {
+                    "fold": fold_index,
+                    "train_indices": fold.train_indices.tolist(),
+                    "test_indices": fold.test_indices.tolist(),
+                }
+                for fold_index, fold in enumerate(result.folds)
+            ],
         }
         (temporary / "run_config.json").write_text(
             json.dumps(metadata, ensure_ascii=False, indent=2),

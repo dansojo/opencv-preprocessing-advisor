@@ -1,9 +1,15 @@
+from io import BytesIO
 from pathlib import Path
+from zipfile import ZipFile
 
 import numpy as np
 import pytest
 
-from opencv_preprocessing_advisor.datasets import discover_dataset, stratified_folds
+from opencv_preprocessing_advisor.datasets import (
+    discover_dataset,
+    extract_dataset_zip,
+    stratified_folds,
+)
 from opencv_preprocessing_advisor.io import encode_png
 
 
@@ -67,3 +73,26 @@ def test_unreadable_image_is_reported_and_skipped(tmp_path):
     assert len(manifest.samples) == 12
     assert len(manifest.skipped_files) == 1
     assert manifest.skipped_files[0].path.name == "broken.png"
+
+
+def test_extract_dataset_zip_rejects_path_traversal(tmp_path):
+    buffer = BytesIO()
+    with ZipFile(buffer, "w") as archive:
+        archive.writestr("../escape.png", b"unsafe")
+
+    with pytest.raises(ValueError, match="unsafe ZIP path"):
+        extract_dataset_zip(buffer.getvalue(), tmp_path / "extracted")
+
+    assert not (tmp_path / "escape.png").exists()
+
+
+def test_extract_dataset_zip_preserves_single_top_level_folder(tmp_path):
+    buffer = BytesIO()
+    with ZipFile(buffer, "w") as archive:
+        archive.writestr("dataset/class_a/a.png", b"image")
+        archive.writestr("dataset/class_b/b.png", b"image")
+
+    root = extract_dataset_zip(buffer.getvalue(), tmp_path / "extracted")
+
+    assert root == tmp_path / "extracted" / "dataset"
+    assert (root / "class_a" / "a.png").read_bytes() == b"image"
