@@ -1,1 +1,13 @@
 .worktrees/
+build/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.pyc
+*.egg-info/
+outputs/*
+!outputs/.gitkeep
+data/classification/*
+!data/classification/.gitkeep
+data/uploads/

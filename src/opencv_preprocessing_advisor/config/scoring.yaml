@@ -1,0 +1,28 @@
+profiles:
+  auto:
+    local_contrast: 0.25
+    entropy: 0.15
+    noise_reduction: 0.20
+    sharpness: 0.15
+    edge_continuity: 0.15
+    clipping_control: 0.10
+  shape:
+    local_contrast: 0.20
+    edge_continuity: 0.25
+    sharpness: 0.20
+    noise_reduction: 0.10
+    edge_density: 0.15
+    clipping_control: 0.10
+  color:
+    color_preservation: 0.25
+    saturation_separation: 0.20
+    local_contrast: 0.15
+    exposure_balance: 0.20
+    clipping_control: 0.20
+  texture:
+    local_contrast: 0.20
+    sharpness: 0.20
+    entropy: 0.15
+    edge_density: 0.20
+    noise_reduction: 0.15
+    clipping_control: 0.10
