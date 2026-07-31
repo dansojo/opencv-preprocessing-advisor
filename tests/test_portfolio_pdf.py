@@ -1,6 +1,8 @@
 """Contract tests for the recruiter-facing portfolio PDF."""
 
 import shutil
+import subprocess
+import time
 from pathlib import Path
 
 import pdfplumber
@@ -85,6 +87,35 @@ def test_build_pdf_creates_six_page_korean_portfolio(tmp_path: Path) -> None:
         "https://github.com/dansojo/opencv-preprocessing-advisor",
     ):
         assert required_text in text
+
+
+def test_build_pdf_is_byte_deterministic(tmp_path: Path) -> None:
+    first_output = tmp_path / "first.pdf"
+    second_output = tmp_path / "second.pdf"
+
+    build_pdf(first_output, PROJECT_ROOT / "docs" / "portfolio" / "assets")
+    time.sleep(1.1)
+    build_pdf(second_output, PROJECT_ROOT / "docs" / "portfolio" / "assets")
+
+    assert first_output.read_bytes() == second_output.read_bytes()
+
+
+def test_committed_pdf_is_marked_as_binary_for_git_diff_checks() -> None:
+    result = subprocess.run(
+        [
+            "git",
+            "check-attr",
+            "binary",
+            "--",
+            "output/pdf/opencv-preprocessing-advisor-portfolio.pdf",
+        ],
+        cwd=PROJECT_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.stdout.strip().endswith("binary: set")
 
 
 def test_pdf_is_landscape_a4_and_embeds_korean_font(tmp_path: Path) -> None:

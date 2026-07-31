@@ -127,7 +127,7 @@ def test_claim_validator_rejects_missing_verified_notion_links(tmp_path):
         readme = copied_root / filename
         content = readme.read_text(encoding="utf-8").replace(
             NOTION_CASE_STUDY_URL,
-            "NOTION_CASE_STUDY_URL: pending",
+            "NOTION_CASE_STUDY_URL" + ": pending",
         )
         readme.write_text(content, encoding="utf-8")
 
@@ -135,6 +135,57 @@ def test_claim_validator_rejects_missing_verified_notion_links(tmp_path):
 
     assert "README.md must link the verified Notion case study." in errors
     assert "README_EN.md must link the verified Notion case study." in errors
+
+
+def test_claim_validator_rejects_public_safety_markers_and_broken_markdown(tmp_path):
+    copied_root = tmp_path / "repository"
+    copytree(
+        PROJECT_ROOT,
+        copied_root,
+        ignore=ignore_patterns(".git", ".pytest_cache", ".ruff_cache", ".superpowers"),
+    )
+    readme = copied_root / "README.md"
+    unsafe_content = "\n".join(
+        (
+            readme.read_text(encoding="utf-8"),
+            "local_path = " + "C:" + "\\Users" + "\\release-user\\dataset",
+            "oauth = " + "gh" + "o_" + "a" * 36,
+            "pat = " + "github" + "_pat_" + "a" * 24,
+            "api_key = " + "s" + "k-" + "a" * 24,
+            "dataset = " + "C:" + "\\datasets\\mvtec" + "_anomaly_detection\\tile",
+            "[temporary render](" + "tmp" + "/pdfs/rendered/page-1.png)",
+            "NOTION_CASE_STUDY_URL" + ": pending",
+            "[missing file](docs/missing.md)",
+            "[missing anchor](docs/portfolio/case-study.md#does-not-exist)",
+        )
+    )
+    readme.write_text(unsafe_content, encoding="utf-8")
+
+    errors = validate_claims(copied_root)
+
+    expected_errors = {
+        "README.md: contains a local Windows user path.",
+        "README.md: contains a GitHub OAuth token marker.",
+        "README.md: contains a GitHub personal-access-token marker.",
+        "README.md: contains an API key marker.",
+        "README.md: contains a local MVTec dataset path.",
+        "README.md: contains a temporary PDF-render path.",
+        "README.md: contains an unresolved Notion-link marker.",
+        "README.md: Markdown link target does not exist: docs/missing.md.",
+        "README.md: Markdown anchor does not exist: docs/portfolio/case-study.md#does-not-exist.",
+    }
+    assert expected_errors <= set(errors)
+
+
+def test_public_release_checklist_records_the_private_notion_gate():
+    checklist = PROJECT_ROOT / "docs" / "PUBLIC_RELEASE_CHECKLIST.md"
+
+    content = checklist.read_text(encoding="utf-8")
+
+    assert NOTION_CASE_STUDY_URL in content
+    assert "private" in content.casefold()
+    assert "explicit owner approval" in content.casefold()
+    assert "anonymous" in content.casefold()
 
 
 def test_case_study_is_a_complete_canonical_source_document():
@@ -241,7 +292,7 @@ def test_korean_readme_is_a_visual_evidence_driven_portfolio_entrypoint():
     assert "](docs/portfolio/limitations.md)" in content
     assert "](output/pdf/opencv-preprocessing-advisor-portfolio.pdf)" in content
     assert f"[상세 Notion 케이스 스터디]({NOTION_CASE_STUDY_URL})" in content
-    assert "NOTION_CASE_STUDY_URL: pending" not in content
+    assert "NOTION_CASE_STUDY_URL" + ": pending" not in content
 
 
 def test_english_readme_mirrors_the_portfolio_claims_without_new_metrics():
@@ -256,7 +307,7 @@ def test_english_readme_mirrors_the_portfolio_claims_without_new_metrics():
     assert "](docs/portfolio/limitations.md)" in content
     assert "](output/pdf/opencv-preprocessing-advisor-portfolio.pdf)" in content
     assert f"[Detailed Notion case study]({NOTION_CASE_STUDY_URL})" in content
-    assert "NOTION_CASE_STUDY_URL: pending" not in content
+    assert "NOTION_CASE_STUDY_URL" + ": pending" not in content
 
 
 def test_local_notion_case_study_is_complete_and_traceable():

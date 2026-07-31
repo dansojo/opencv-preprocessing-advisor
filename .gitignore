@@ -5,6 +5,7 @@ build/
 __pycache__/
 .pytest_cache/
 .ruff_cache/
+tmp/
 *.pyc
 *.egg-info/
 outputs/*

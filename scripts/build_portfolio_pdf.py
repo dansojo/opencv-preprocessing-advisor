@@ -692,7 +692,9 @@ def build_pdf(output_path: Path, assets_dir: Path) -> Path:
     data = load_portfolio_data(assets_dir)
     _register_korean_fonts()
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    canvas = Canvas(str(output_path), pagesize=(PAGE_WIDTH, PAGE_HEIGHT), pageCompression=1)
+    canvas = Canvas(
+        str(output_path), pagesize=(PAGE_WIDTH, PAGE_HEIGHT), pageCompression=1, invariant=1
+    )
     canvas.setTitle("OpenCV Preprocessing Advisor Portfolio")
     canvas.setAuthor("OpenCV Preprocessing Advisor")
     _page_one(canvas, assets_dir, data)
