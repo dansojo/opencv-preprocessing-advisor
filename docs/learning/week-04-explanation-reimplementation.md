@@ -130,7 +130,7 @@ CLAHE clip limit 1.0과 4.0 또는 Gaussian kernel 3과 9를 비교한다. ‘�
 [면접 Q&A](interview-qa.md), [실습](exercises.md), [진도표](progress-checklist.md)를 사용하고 [전체 테스트 목록](../../tests/test_evaluation.py)도 확인한다.
 
 ### 실습
-[Q01](interview-qa.md#q01-bgr-rgb)의 답을 보지 않고 녹음하고, E21 또는 E24를 빈 파일에서 다시 시작한다. 빠진 근거는 체크리스트에 ‘재학습’으로 적는다.
+[Q01](interview-qa.md#q01-bgr과-rgb를-왜-구분하나요)의 답을 보지 않고 녹음하고, E21 또는 E24를 빈 파일에서 다시 시작한다. 빠진 근거는 체크리스트에 ‘재학습’으로 적는다.
 
 ### 말로 설명
 “나는 결과와 근거를 분리하고, 확인하지 않은 일반화는 하지 않는다”라고 말한 뒤 4주 중 다시 할 Day를 하나 고른다.

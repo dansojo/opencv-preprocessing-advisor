@@ -89,7 +89,7 @@ Gaussian은 주변값을 가중 평균해 부드럽게 하고, Median은 점 잡
 Sobel/Scharr는 방향별 변화, Laplacian은 2차 변화, Canny는 단계적 경계 검출 절차를 제공한다. 미분은 노이즈에도 반응하므로 전처리와 임계값을 함께 고려한다.
 
 ### 코드 연결
-[TextureStatsExtractor](../../src/opencv_preprocessing_advisor/features.py)의 Sobel·Laplacian 사용과 [증거 표](../portfolio/evidence-map.md)를 읽는다.
+[TextureStatsExtractor](../../src/opencv_preprocessing_advisor/features.py)의 Sobel·Laplacian 사용과, Scharr/Canny를 직접 실행하는 [technique_explorer.py](../../ui/technique_explorer.py), [증거 표](../portfolio/evidence-map.md)를 읽는다.
 
 ### 실습
 단순 사각형과 잡음 사각형에 네 연산자를 적용한다. Canny 임계값 두 쌍을 비교하고 끊긴 경계·잡음 경계를 표시한다.
@@ -108,7 +108,7 @@ Sobel/Scharr는 방향별 변화, Laplacian은 2차 변화, Canny는 단계적 �
 threshold는 마스크를 만들고, morphology는 작은 구멍·점들을 다루며, contours/components는 연결된 영역의 위치·면적 같은 측정 단위를 만든다. 구조 요소의 크기와 모양은 결과를 바꾼다.
 
 ### 코드 연결
-[diagnostics.py](../../src/opencv_preprocessing_advisor/diagnostics.py)와 [서비스의 후보 설명](../../src/opencv_preprocessing_advisor/services.py)을 읽는다.
+[diagnostics.py](../../src/opencv_preprocessing_advisor/diagnostics.py), threshold·morphology·contours·connected components를 직접 실행하는 [technique_explorer.py](../../ui/technique_explorer.py), [서비스의 후보 설명](../../src/opencv_preprocessing_advisor/services.py)을 읽는다.
 
 ### 실습
 점 노이즈와 작은 구멍을 가진 이진 마스크를 만든다. opening/closing 전후 컴포넌트 수와 가장 큰 면적을 비교한다.

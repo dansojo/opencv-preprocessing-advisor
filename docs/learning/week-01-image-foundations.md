@@ -108,7 +108,7 @@ LAB의 L 채널을 이용해 밝기 보정을 색 정보와 분리하는 이유�
 파일 경로는 이미지 배열과 별개의 경계 조건이다. 프로젝트는 경로를 바이트로 읽어 OpenCV 디코더에 넘기는 방식으로 Unicode 경로를 다룬다.
 
 ### 코드 연결
-[read_image](../../src/opencv_preprocessing_advisor/io.py)와 [Unicode I/O 테스트](../../tests/test_io.py)를 읽는다.
+[decode_image](../../src/opencv_preprocessing_advisor/io.py)와 [Unicode I/O 테스트](../../tests/test_io.py)를 읽는다.
 
 ### 실습
 `한글_이미지.png`라는 임시 경로에 작은 이미지를 저장·읽기 한다. 실패하면 운영체제·라이브러리·경로 중 어디를 먼저 확인할지 적는다.
@@ -130,7 +130,7 @@ LAB의 L 채널을 이용해 밝기 보정을 색 정보와 분리하는 이유�
 [I/O](../../src/opencv_preprocessing_advisor/io.py), [색 특징](../../src/opencv_preprocessing_advisor/features.py), [입력 테스트](../../tests/test_io.py)를 다시 참조한다.
 
 ### 실습
-20분 안에 파일을 읽어 shape, dtype, Gray 평균, HSV 평균, LAB L 평균을 출력하는 함수를 작성한다. 마지막 10분은 출력 세 줄을 해석하는 데 쓴다.
+10분 안에 파일을 읽어 shape, dtype, Gray 평균, HSV 평균, LAB L 평균을 출력하는 함수를 작성하고 실행한다. 출력 세 줄에서 색 공간별 관찰을 한 문장씩 기록한다.
 
 ### 말로 설명
 “프로젝트의 모든 변환은 검증된 BGR 배열에서 시작한다”는 문장으로 1분 요약을 녹음하고, BGR과 RGB를 혼동하지 않았는지 듣는다.

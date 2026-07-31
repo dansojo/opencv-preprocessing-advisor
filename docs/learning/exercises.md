@@ -46,7 +46,7 @@ threshold 후 connected components로 면적 상위 3개를 출력한다. 작은
 색 비율은 같고 위치가 다른 두 이미지를 만든다. [ColorHistogramExtractor](../../src/opencv_preprocessing_advisor/features.py) 벡터 차이를 계산하고 한계를 쓴다.
 
 ## E14: HOG 크기 계약
-128×128과 130×128 입력에서 HOG 생성 조건을 확인한다. [HOGExtractor](../../src/opencv_preprocessing_advisor/features.py)의 16 배수 제약을 예외 메시지와 함께 기록한다.
+기본 `HOGExtractor()`와 `HOGExtractor(size=(130, 128))`를 만들어 생성 조건을 확인한다. [HOGExtractor](../../src/opencv_preprocessing_advisor/features.py)의 16 배수 제약 때문에 두 번째 설정이 예외가 되는지 기록한다. 원본 이미지는 resize되므로 소스 이미지 크기가 아니라 설정한 `size`가 이 계약을 결정한다.
 
 ## E15: Gabor 방향성
 0도·90도 줄무늬에 0도·90도 Gabor를 적용한다. 각 응답 절댓값 평균을 표로 만들고 방향을 바꾸면 왜 값이 달라지는지 쓴다.
