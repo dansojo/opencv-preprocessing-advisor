@@ -10,6 +10,7 @@ from pypdf import PdfReader
 from scripts.build_portfolio_pdf import build_pdf, load_portfolio_data
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+EMBEDDED_KOREAN_FONT_NAMES = ("MalgunGothic", "NanumGothic")
 
 
 def _copy_portfolio_sources(tmp_path: Path) -> Path:
@@ -100,6 +101,6 @@ def test_pdf_is_landscape_a4_and_embeds_korean_font(tmp_path: Path) -> None:
         font = font_reference.get_object()
         base_font = str(font.get("/BaseFont", ""))
         descriptor = font.get("/FontDescriptor")
-        if "MalgunGothic" in base_font and descriptor is not None:
+        if any(name in base_font for name in EMBEDDED_KOREAN_FONT_NAMES) and descriptor is not None:
             embedded_korean_font = "/FontFile2" in descriptor.get_object()
     assert embedded_korean_font
