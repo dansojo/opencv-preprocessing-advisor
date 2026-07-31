@@ -26,7 +26,7 @@
 | CLAHE + Bilateral | RTrees | 0.766 | 0.731 |
 | LAB CLAHE | RTrees | 0.664 | 0.594 |
 
-SVM, kNN, RTrees는 모두 같은 전처리, 특징, fold 조건에서 비교 대상으로 실행된다. 이 문서는 세 분류기의 전체 순위를 새로 추정하지 않으며, 생성된 `leaderboard.csv`, fold metrics, class metrics, timing, confusion matrices가 조합별 상세 결과를 보존한다.
+이 documented/default evidence run은 SVM, kNN, RTrees를 같은 전처리, 특징, fold 조건에서 비교한 구성이다. 이 문서는 세 분류기의 전체 순위를 새로 추정하거나 이 구성이 모든 데이터셋의 기본값이라고 주장하지 않으며, 생성된 `leaderboard.csv`, fold metrics, class metrics, timing, confusion matrices가 조합별 상세 결과를 보존한다.
 
 ## 혼동행렬 읽기
 

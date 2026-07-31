@@ -10,6 +10,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PORTFOLIO_ROOT = PROJECT_ROOT / "docs" / "portfolio"
 BENCHMARK_EVIDENCE = PORTFOLIO_ROOT / "benchmark-evidence.json"
 CONFUSION_MATRIX = PORTFOLIO_ROOT / "assets" / "mvtec-tile-best-confusion-matrix.png"
+PIPELINE_CONFIG = (
+    PROJECT_ROOT / "src" / "opencv_preprocessing_advisor" / "config" / "pipelines.yaml"
+)
 REQUIRED_CASE_STUDY_HEADINGS = {
     "문제 정의",
     "단계 진단",
@@ -77,6 +80,7 @@ def test_experiment_results_records_exact_protocol_and_leaderboard():
     content = experiment_results.read_text(encoding="utf-8")
     assert REQUIRED_EXPERIMENT_ROWS <= set(content.splitlines())
     assert all(item in content for item in REQUIRED_EVALUATION_PROTOCOL)
+    assert "documented/default evidence run" in content
     assert "Hypothesis:" in content
     assert "not an official MVTec anomaly-detection metric" in content
 
@@ -100,6 +104,10 @@ def test_canonical_benchmark_values_match_path_free_regenerated_evidence():
         for marker in ("C:\\Users\\", "mvtec_anomaly_detection")
     )
     assert evidence["provenance"]["report_hashes"]
+    assert (
+        evidence["provenance"]["pipeline_config_sha256"]
+        == hashlib.sha256(PIPELINE_CONFIG.read_bytes()).hexdigest()
+    )
     assert (
         evidence["provenance"]["confusion_matrix_sha256"]
         == hashlib.sha256(CONFUSION_MATRIX.read_bytes()).hexdigest()
