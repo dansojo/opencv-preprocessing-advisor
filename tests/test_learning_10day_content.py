@@ -247,3 +247,46 @@ def test_day_five_distinguishes_explicit_canny_smoothing_from_the_api() -> None:
 
     assert "cv2.Canny는 Gaussian blur를 내부적으로 호출하지 않는다" in text
     assert "선택적으로 명시한 Gaussian blur" in text
+
+
+def test_days_six_to_ten_are_deep_traceable_and_keep_evidence_boundaries() -> None:
+    """Project-mastery pages teach runnable work without overstating results."""
+    required_terms = {
+        6: ("YAML", "heuristic", "Top 3", "clipping", "oversmoothing"),
+        7: ("HSV/LAB histogram", "HOG", "Gabor", "SIFT", "fold-local vocabulary"),
+        8: ("cv2.ml", "SVM", "kNN", "RTrees", "float32"),
+        9: ("stratified", "fold-local scaling", "Macro F1", "confusion matrix", "leakage"),
+        10: ("5분", "15분", "0.804", "0.789", "not official"),
+    }
+    for day, terms in required_terms.items():
+        text = (LEARNING_10DAY / f"day-{day:02d}.md").read_text(encoding="utf-8")
+        assert len(text) >= 6000
+        assert all(term in text for term in terms)
+        assert all(f"## {section}" in text for section in DAY_SECTIONS)
+        assert text.count("](../../src/") + text.count("](../../tests/") >= 3
+        assert "```python" in text
+        assert re.search(r"(?m)^\|\s*관찰", text)
+        assert len(re.findall(r"(?m)^- \[ \]", text)) >= 4
+
+    day_six = (LEARNING_10DAY / "day-06.md").read_text(encoding="utf-8")
+    assert "정확도" in day_six
+    assert "우선순위" in day_six
+    assert "레이블" in day_six
+
+    day_seven = (LEARNING_10DAY / "day-07.md").read_text(encoding="utf-8")
+    assert "현재 benchmark profile" in day_seven
+    assert "학습 fold" in day_seven
+
+    day_nine = (LEARNING_10DAY / "day-09.md").read_text(encoding="utf-8")
+    assert "훈련 fold" in day_nine
+    assert "test fold" in day_nine
+
+    day_ten = (LEARNING_10DAY / "day-10.md").read_text(encoding="utf-8")
+    assert "## 5분 발표 스크립트" in day_ten
+    assert "## 15분 기술 발표 구성" in day_ten
+    assert "## 한계와 다음 실험" in day_ten
+    assert len(re.findall(r"(?m)^\d+\. \*\*.*\?\*\*", day_ten)) >= 10
+    assert "117" in day_ten
+    assert "6개" in day_ten
+    assert "stratified 5-fold" in day_ten
+    assert "seed 42" in day_ten
