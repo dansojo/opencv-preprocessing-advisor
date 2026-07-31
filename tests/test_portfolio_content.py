@@ -83,11 +83,16 @@ GITHUB_MAIN_DOCUMENT_LINK = re.compile(
     r"(?:docs/portfolio|output/pdf)/[^)\s]+"
 )
 RELATIVE_MARKDOWN_LINK = re.compile(r"\]\((?!https?://|mailto:|#)[^)]+\)")
+GFM_TABLE_HEADER = re.compile(r"(?m)^\|[^\n]+\|\n\|\s*:?-{3,}.*\|\s*$")
 NOTION_CALLOUTS = {
     "휴리스틱 점수": ("⚠️", "yellow_bg"),
     "MVTec 공식 지표": ("⚠️", "yellow_bg"),
     "원본 파이프라인의 승리": ("💡", "green_bg"),
 }
+NOTION_TABLE_HEADERS = (
+    ("Pipeline", "Classifier", "Accuracy", "Macro F1"),
+    ("증상", "먼저 확인할 근거", "대응"),
+)
 
 
 def test_claim_validator_accepts_current_repository():
@@ -244,18 +249,32 @@ def test_local_notion_case_study_is_complete_and_traceable():
     assert "> [!WARNING]" not in content
     assert "> [!TIP]" not in content
     assert len(set(GITHUB_MAIN_DOCUMENT_LINK.findall(content))) >= 5
+    assert not GFM_TABLE_HEADER.search(content)
     for title, (icon, color) in NOTION_CALLOUTS.items():
         matches = list(
             re.finditer(
                 rf'<callout icon="{icon}" color="{color}">\n'
-                rf"(?P<body>(?:  .*\n)+?)</callout>",
+                rf"(?P<body>(?:\t.*\n)+?)</callout>",
                 content,
             )
         )
-        matching = [match for match in matches if f"  **{title}**" in match["body"]]
+        matching = [match for match in matches if f"\t**{title}**" in match["body"]]
         assert matching, f"missing Notion callout for {title}"
         assert all(
-            not line or line.startswith("  ")
+            not line or line.startswith("\t")
             for match in matching
             for line in match["body"].splitlines()
         )
+    tables = re.findall(
+        r'<table fit-page-width="true" header-row="true">\n'
+        r"(?P<body>.*?)</table>",
+        content,
+        re.DOTALL,
+    )
+    assert len(tables) == 2
+    for headers, table in zip(NOTION_TABLE_HEADERS, tables, strict=True):
+        expected_header = "\n".join(
+            ("\t<tr>", *(f"\t\t<td>{header}</td>" for header in headers), "\t</tr>")
+        )
+        assert table.startswith(f"{expected_header}\n")
+        assert all(not line or line.startswith("\t") for line in table.splitlines())

@@ -30,8 +30,8 @@
 Advisor는 한 장의 이미지에서 밝기, 대비, 노이즈, 에지, 색상, 클리핑 변화에 근거해 후보를 정렬한다. 반면 Benchmark는 클래스 폴더와 레이블을 입력으로 받아 전처리·특징·분류기 조합을 같은 fold에서 비교한다. 두 결과가 답하는 질문이 다르므로 같은 숫자로 보이게 만들지 않았다.
 
 <callout icon="⚠️" color="yellow_bg">
-  **휴리스틱 점수**
-  Advisor의 적합도 점수는 **분류 정확도나 일반화 성능 추정치가 아니다**. 레이블이 없는 입력에서 다음 실험의 우선순위를 투명하게 정하는 휴리스틱이며, 성능 결론은 데이터셋 교차 검증에서만 낸다. 점수 계산과 경고 규칙은 [scoring.py](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/src/opencv_preprocessing_advisor/scoring.py)에서 확인할 수 있다.
+	**휴리스틱 점수**
+	Advisor의 적합도 점수는 **분류 정확도나 일반화 성능 추정치가 아니다**. 레이블이 없는 입력에서 다음 실험의 우선순위를 투명하게 정하는 휴리스틱이며, 성능 결론은 데이터셋 교차 검증에서만 낸다. 점수 계산과 경고 규칙은 [scoring.py](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/src/opencv_preprocessing_advisor/scoring.py)에서 확인할 수 있다.
 </callout>
 
 이 분리는 "시각적으로 강한 효과"를 "모델 성능 향상"으로 오해하지 않게 한다. 추천은 실험의 출발점이고, 평가는 그 출발점을 레이블 데이터에서 반증하거나 지지하는 별도 단계다.
@@ -70,22 +70,43 @@ LAB L-channel CLAHE는 BGR 각 채널을 독립적으로 평활화하지 않고 
 
 이 실험은 MVTec AD `tile/test`의 상태 폴더 `crack`, `glue_strip`, `good`, `gray_stroke`, `oil`, `rough`을 **6개 클래스**로 해석한 고전 분류 사례다. 총 **117** images를 seed 42의 stratified 5-fold 교차 검증으로 평가했고, SVM·kNN·RTrees와 `combined` 특징을 비교했다.
 
-| Pipeline | Classifier | Accuracy | Macro F1 |
-| --- | --- | ---: | ---: |
-| Original | RTrees | **0.804** | **0.789** |
-| CLAHE + Bilateral | RTrees | 0.766 | 0.731 |
-| LAB CLAHE | RTrees | 0.664 | 0.594 |
+<table fit-page-width="true" header-row="true">
+	<tr>
+		<td>Pipeline</td>
+		<td>Classifier</td>
+		<td>Accuracy</td>
+		<td>Macro F1</td>
+	</tr>
+	<tr>
+		<td>Original</td>
+		<td>RTrees</td>
+		<td>**0.804**</td>
+		<td>**0.789**</td>
+	</tr>
+	<tr>
+		<td>CLAHE + Bilateral</td>
+		<td>RTrees</td>
+		<td>0.766</td>
+		<td>0.731</td>
+	</tr>
+	<tr>
+		<td>LAB CLAHE</td>
+		<td>RTrees</td>
+		<td>0.664</td>
+		<td>0.594</td>
+	</tr>
+</table>
 
 <callout icon="⚠️" color="yellow_bg">
-  **MVTec 공식 지표**
-  이 결과는 `tile/test` 폴더 이름을 클래스 레이블로 사용한 분류 실험이며, **not an official MVTec anomaly-detection metric** 이다. GT mask, anomaly localization, AUROC, pixel-level AUROC, PRO를 사용하거나 주장하지 않는다. 정확한 프로토콜과 표시는 [실험 결과](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/docs/portfolio/experiment-results.md)와 [재생성 증거](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/docs/portfolio/benchmark-evidence.json)에 남겼다.
+	**MVTec 공식 지표**
+	이 결과는 `tile/test` 폴더 이름을 클래스 레이블로 사용한 분류 실험이며, **not an official MVTec anomaly-detection metric** 이다. GT mask, anomaly localization, AUROC, pixel-level AUROC, PRO를 사용하거나 주장하지 않는다. 정확한 프로토콜과 표시는 [실험 결과](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/docs/portfolio/experiment-results.md)와 [재생성 증거](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/docs/portfolio/benchmark-evidence.json)에 남겼다.
 </callout>
 
 ## 실패 해석
 
 <callout icon="💡" color="green_bg">
-  **원본 파이프라인의 승리**
-  Original + RTrees의 Accuracy **0.804**, Macro F1 **0.789**는 "전처리를 하지 못했다"가 아니라, 이 데이터와 고정 특징 조합에서는 원본 질감과 클래스 구분 정보가 이미 충분했음을 보여 주는 유용한 엔지니어링 결론이다.
+	**원본 파이프라인의 승리**
+	Original + RTrees의 Accuracy **0.804**, Macro F1 **0.789**는 "전처리를 하지 못했다"가 아니라, 이 데이터와 고정 특징 조합에서는 원본 질감과 클래스 구분 정보가 이미 충분했음을 보여 주는 유용한 엔지니어링 결론이다.
 </callout>
 
 CLAHE + Bilateral의 Macro F1은 0.731, LAB CLAHE는 0.594로 원본보다 낮았다. 가능한 가설은 국소 대비 강화가 클래스 구분에 쓰이던 자연 질감을 바꾸거나, bilateral 평활화가 약한 표면 변화를 줄였다는 것이다. 그러나 이는 결과를 설명하기 위한 가설이지 인과관계나 다른 데이터셋에 대한 일반화 결론이 아니다.
@@ -94,13 +115,38 @@ CLAHE + Bilateral의 Macro F1은 0.731, LAB CLAHE는 0.594로 원본보다 낮�
 
 ## 트러블슈팅
 
-| 증상 | 먼저 확인할 근거 | 대응 |
-| --- | --- | --- |
-| 추천 점수가 높지만 과도한 효과가 보임 | score warnings와 전후 진단 | clipping, excessive edges, oversmoothing, color loss 경고를 보고 다른 후보와 비교한다. |
-| 색상이 어색하게 바뀜 | LAB L-channel 선택과 변환 결과 | BGR 채널별 평활화 대신 L 채널에만 CLAHE를 적용한 후보를 비교한다. |
-| 같은 데이터에서 성능이 예상보다 높음 | fold-local scaling과 seed | 훈련 fold만으로 표준화했는지, seed 42와 동일 fold인지 확인한다. |
-| SIFT 수치가 리더보드에 없음 | Feature profile 노출 범위 | 현재 `combined`만 보고하며, fold-local vocabulary 없이는 SIFT BoW를 비교에 넣지 않는다. |
-| 보고서를 다시 만들 수 없음 | CLI와 산출물 경로 | [CLI 테스트](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/tests/test_cli.py)와 [reports 테스트](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/tests/test_reports.py)를 따라 `opencv-prep benchmark` 실행 조건과 출력물을 확인한다. |
+<table fit-page-width="true" header-row="true">
+	<tr>
+		<td>증상</td>
+		<td>먼저 확인할 근거</td>
+		<td>대응</td>
+	</tr>
+	<tr>
+		<td>추천 점수가 높지만 과도한 효과가 보임</td>
+		<td>score warnings와 전후 진단</td>
+		<td>clipping, excessive edges, oversmoothing, color loss 경고를 보고 다른 후보와 비교한다.</td>
+	</tr>
+	<tr>
+		<td>색상이 어색하게 바뀜</td>
+		<td>LAB L-channel 선택과 변환 결과</td>
+		<td>BGR 채널별 평활화 대신 L 채널에만 CLAHE를 적용한 후보를 비교한다.</td>
+	</tr>
+	<tr>
+		<td>같은 데이터에서 성능이 예상보다 높음</td>
+		<td>fold-local scaling과 seed</td>
+		<td>훈련 fold만으로 표준화했는지, seed 42와 동일 fold인지 확인한다.</td>
+	</tr>
+	<tr>
+		<td>SIFT 수치가 리더보드에 없음</td>
+		<td>Feature profile 노출 범위</td>
+		<td>현재 `combined`만 보고하며, fold-local vocabulary 없이는 SIFT BoW를 비교에 넣지 않는다.</td>
+	</tr>
+	<tr>
+		<td>보고서를 다시 만들 수 없음</td>
+		<td>CLI와 산출물 경로</td>
+		<td>[CLI 테스트](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/tests/test_cli.py)와 [reports 테스트](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/tests/test_reports.py)를 따라 `opencv-prep benchmark` 실행 조건과 출력물을 확인한다.</td>
+	</tr>
+</table>
 
 문제 해결의 핵심은 단일 점수나 한 장의 결과 이미지에 의존하지 않는 것이다. 입력 검증, 진단 변화, pipeline 설정, fold 계획, 생성 보고서를 순서대로 확인하면 추천 문제와 평가 문제를 분리한 채 원인을 좁힐 수 있다.
 
