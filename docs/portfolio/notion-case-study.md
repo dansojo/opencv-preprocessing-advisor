@@ -4,23 +4,11 @@
 
 **프로젝트 링크:** [GitHub 저장소](https://github.com/dansojo/opencv-preprocessing-advisor)
 
-**PDF 포트폴리오:** `output/pdf/opencv-preprocessing-advisor-portfolio.pdf`
-**정본 근거:** [사례 연구](case-study.md), [실험 결과](experiment-results.md), [한계와 다음 검증](limitations.md), [증거 맵](evidence-map.md)
+**PDF 포트폴리오:** [6페이지 PDF](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/output/pdf/opencv-preprocessing-advisor-portfolio.pdf)
 
-## 목차
+**정본 근거:** [사례 연구](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/docs/portfolio/case-study.md), [실험 결과](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/docs/portfolio/experiment-results.md), [한계와 다음 검증](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/docs/portfolio/limitations.md), [증거 맵](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/docs/portfolio/evidence-map.md)
 
-1. [프로젝트 요약](#프로젝트-요약)
-2. [배경과 요구사항 변화](#배경과-요구사항-변화)
-3. [추천과 평가의 분리](#추천과-평가의-분리)
-4. [이미지 진단](#이미지-진단)
-5. [전처리 선택](#전처리-선택)
-6. [특징](#특징)
-7. [분류기](#분류기)
-8. [누수 방지와 재현성](#누수-방지와-재현성)
-9. [MVTec 실험](#mvtec-실험)
-10. [실패 해석](#실패-해석)
-11. [트러블슈팅](#트러블슈팅)
-12. [한계와 다음 실험](#한계와-다음-실험)
+<table_of_contents/>
 
 ## 프로젝트 요약
 
@@ -41,8 +29,10 @@
 
 Advisor는 한 장의 이미지에서 밝기, 대비, 노이즈, 에지, 색상, 클리핑 변화에 근거해 후보를 정렬한다. 반면 Benchmark는 클래스 폴더와 레이블을 입력으로 받아 전처리·특징·분류기 조합을 같은 fold에서 비교한다. 두 결과가 답하는 질문이 다르므로 같은 숫자로 보이게 만들지 않았다.
 
-> [!WARNING] 휴리스틱 점수
-> Advisor의 적합도 점수는 **분류 정확도나 일반화 성능 추정치가 아니다**. 레이블이 없는 입력에서 다음 실험의 우선순위를 투명하게 정하는 휴리스틱이며, 성능 결론은 데이터셋 교차 검증에서만 낸다. 점수 계산과 경고 규칙은 [scoring.py](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/src/opencv_preprocessing_advisor/scoring.py)에서 확인할 수 있다.
+<callout icon="⚠️" color="yellow_bg">
+  **휴리스틱 점수**
+  Advisor의 적합도 점수는 **분류 정확도나 일반화 성능 추정치가 아니다**. 레이블이 없는 입력에서 다음 실험의 우선순위를 투명하게 정하는 휴리스틱이며, 성능 결론은 데이터셋 교차 검증에서만 낸다. 점수 계산과 경고 규칙은 [scoring.py](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/src/opencv_preprocessing_advisor/scoring.py)에서 확인할 수 있다.
+</callout>
 
 이 분리는 "시각적으로 강한 효과"를 "모델 성능 향상"으로 오해하지 않게 한다. 추천은 실험의 출발점이고, 평가는 그 출발점을 레이블 데이터에서 반증하거나 지지하는 별도 단계다.
 
@@ -74,7 +64,7 @@ LAB L-channel CLAHE는 BGR 각 채널을 독립적으로 평활화하지 않고 
 
 [datasets.py](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/src/opencv_preprocessing_advisor/datasets.py)는 클래스 폴더를 결정적으로 탐색하고, seed 42로 stratified fold를 만든다. [evaluation.py](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/src/opencv_preprocessing_advisor/evaluation.py)는 각 fold의 훈련 특징에만 표준화기를 적합하고 테스트 특징에는 변환만 적용하는 **fold-local scaling**을 수행한다. 이 경계가 없으면 테스트 분포가 훈련 통계에 섞여 성능이 낙관적으로 보이는 누수가 생긴다.
 
-평가 코드와 [평가 테스트](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/tests/test_evaluation.py)는 같은 split에서 조합을 비교하고, 생성 보고서는 순위표·fold 지표·클래스 지표·혼동행렬·시간·실행 설정을 남긴다. 이 경로와 [benchmark-evidence.json](benchmark-evidence.json)의 hash 요약은 소스 이미지나 로컬 절대 경로를 커밋하지 않고도 재생성 근거를 제공한다.
+평가 코드와 [평가 테스트](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/tests/test_evaluation.py)는 같은 split에서 조합을 비교하고, 생성 보고서는 순위표·fold 지표·클래스 지표·혼동행렬·시간·실행 설정을 남긴다. 이 경로와 [benchmark-evidence.json](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/docs/portfolio/benchmark-evidence.json)의 hash 요약은 소스 이미지나 로컬 절대 경로를 커밋하지 않고도 재생성 근거를 제공한다.
 
 ## MVTec 실험
 
@@ -86,13 +76,17 @@ LAB L-channel CLAHE는 BGR 각 채널을 독립적으로 평활화하지 않고 
 | CLAHE + Bilateral | RTrees | 0.766 | 0.731 |
 | LAB CLAHE | RTrees | 0.664 | 0.594 |
 
-> [!WARNING] MVTec 공식 지표
-> 이 결과는 `tile/test` 폴더 이름을 클래스 레이블로 사용한 분류 실험이며, **not an official MVTec anomaly-detection metric** 이다. GT mask, anomaly localization, AUROC, pixel-level AUROC, PRO를 사용하거나 주장하지 않는다. 정확한 프로토콜과 표시는 [실험 결과](experiment-results.md)와 [재생성 증거](benchmark-evidence.json)에 남겼다.
+<callout icon="⚠️" color="yellow_bg">
+  **MVTec 공식 지표**
+  이 결과는 `tile/test` 폴더 이름을 클래스 레이블로 사용한 분류 실험이며, **not an official MVTec anomaly-detection metric** 이다. GT mask, anomaly localization, AUROC, pixel-level AUROC, PRO를 사용하거나 주장하지 않는다. 정확한 프로토콜과 표시는 [실험 결과](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/docs/portfolio/experiment-results.md)와 [재생성 증거](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/docs/portfolio/benchmark-evidence.json)에 남겼다.
+</callout>
 
 ## 실패 해석
 
-> [!TIP] 원본 파이프라인의 승리
-> Original + RTrees의 Accuracy **0.804**, Macro F1 **0.789**는 "전처리를 하지 못했다"가 아니라, 이 데이터와 고정 특징 조합에서는 원본 질감과 클래스 구분 정보가 이미 충분했음을 보여 주는 유용한 엔지니어링 결론이다.
+<callout icon="💡" color="green_bg">
+  **원본 파이프라인의 승리**
+  Original + RTrees의 Accuracy **0.804**, Macro F1 **0.789**는 "전처리를 하지 못했다"가 아니라, 이 데이터와 고정 특징 조합에서는 원본 질감과 클래스 구분 정보가 이미 충분했음을 보여 주는 유용한 엔지니어링 결론이다.
+</callout>
 
 CLAHE + Bilateral의 Macro F1은 0.731, LAB CLAHE는 0.594로 원본보다 낮았다. 가능한 가설은 국소 대비 강화가 클래스 구분에 쓰이던 자연 질감을 바꾸거나, bilateral 평활화가 약한 표면 변화를 줄였다는 것이다. 그러나 이는 결과를 설명하기 위한 가설이지 인과관계나 다른 데이터셋에 대한 일반화 결론이 아니다.
 
@@ -114,4 +108,4 @@ CLAHE + Bilateral의 Macro F1은 0.731, LAB CLAHE는 0.594로 원본보다 낮�
 
 현재 범위는 모든 OpenCV API, 모든 분류기, 깊은 특징, 모든 산업 이미지의 최적화를 주장하지 않는다. Advisor는 휴리스틱이고, MVTec 사례는 117 images·6개 클래스·seed 42·고정 특징·선택한 세 파이프라인의 제한된 관찰이다. GT mask와 공식 anomaly-detection 프로토콜도 범위 밖이다.
 
-다음 실험에서는 (1) 다른 class/촬영 조건/seed에서 동일 보고서를 생성해 fold별 변동을 비교하고, (2) feature profile 및 전처리 parameter ablation을 수행하며, (3) 각 훈련 fold에서만 학습한 SIFT vocabulary를 통합하고, (4) GT mask와 공식 정의에 맞는 별도 anomaly-detection 평가를 구현한다. 각 단계는 지금의 [한계 문서](limitations.md)와 [증거 맵](evidence-map.md)를 갱신해, 새 주장보다 먼저 검증 경로를 남겨야 한다.
+다음 실험에서는 (1) 다른 class/촬영 조건/seed에서 동일 보고서를 생성해 fold별 변동을 비교하고, (2) feature profile 및 전처리 parameter ablation을 수행하며, (3) 각 훈련 fold에서만 학습한 SIFT vocabulary를 통합하고, (4) GT mask와 공식 정의에 맞는 별도 anomaly-detection 평가를 구현한다. 각 단계는 지금의 [한계 문서](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/docs/portfolio/limitations.md)와 [증거 맵](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/docs/portfolio/evidence-map.md)를 갱신해, 새 주장보다 먼저 검증 경로를 남겨야 한다.

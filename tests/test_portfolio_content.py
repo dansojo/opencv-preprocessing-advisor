@@ -78,6 +78,16 @@ GITHUB_MAIN_SOURCE_LINK = re.compile(
     r"https://github\.com/dansojo/opencv-preprocessing-advisor/blob/main/"
     r"(?:src|tests|scripts|docs)/[^)\s]+"
 )
+GITHUB_MAIN_DOCUMENT_LINK = re.compile(
+    r"https://github\.com/dansojo/opencv-preprocessing-advisor/blob/main/"
+    r"(?:docs/portfolio|output/pdf)/[^)\s]+"
+)
+RELATIVE_MARKDOWN_LINK = re.compile(r"\]\((?!https?://|mailto:|#)[^)]+\)")
+NOTION_CALLOUTS = {
+    "휴리스틱 점수": ("⚠️", "yellow_bg"),
+    "MVTec 공식 지표": ("⚠️", "yellow_bg"),
+    "원본 파이프라인의 승리": ("💡", "green_bg"),
+}
 
 
 def test_claim_validator_accepts_current_repository():
@@ -228,6 +238,24 @@ def test_local_notion_case_study_is_complete_and_traceable():
     assert all(f"## {heading}" in content for heading in NOTION_CASE_STUDY_HEADINGS)
     assert NOTION_CASE_STUDY_METRICS <= set(re.findall(r"\d+(?:\.\d+)?", content))
     assert len(set(GITHUB_MAIN_SOURCE_LINK.findall(content))) >= 15
-    assert "> [!WARNING] 휴리스틱 점수" in content
-    assert "> [!WARNING] MVTec 공식 지표" in content
-    assert "> [!TIP] 원본 파이프라인의 승리" in content
+    assert "<table_of_contents/>" in content
+    assert "## 목차" not in content
+    assert not RELATIVE_MARKDOWN_LINK.findall(content)
+    assert "> [!WARNING]" not in content
+    assert "> [!TIP]" not in content
+    assert len(set(GITHUB_MAIN_DOCUMENT_LINK.findall(content))) >= 5
+    for title, (icon, color) in NOTION_CALLOUTS.items():
+        matches = list(
+            re.finditer(
+                rf'<callout icon="{icon}" color="{color}">\n'
+                rf"(?P<body>(?:  .*\n)+?)</callout>",
+                content,
+            )
+        )
+        matching = [match for match in matches if f"  **{title}**" in match["body"]]
+        assert matching, f"missing Notion callout for {title}"
+        assert all(
+            not line or line.startswith("  ")
+            for match in matching
+            for line in match["body"].splitlines()
+        )
