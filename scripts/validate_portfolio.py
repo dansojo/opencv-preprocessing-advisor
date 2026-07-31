@@ -22,6 +22,30 @@ NOTION_SOURCE = Path("docs/portfolio/notion-case-study.md")
 PORTFOLIO_PDF = Path("output/pdf/opencv-preprocessing-advisor-portfolio.pdf")
 PYPROJECT = Path("pyproject.toml")
 NOTION_CASE_STUDY_URL = "https://app.notion.com/p/3aed0dc3cc1d81c0977fd982867f94e1"
+LEARNING_10DAY_DIR = Path("docs/learning-10day")
+LEARNING_10DAY_DAY_FILES = tuple(f"day-{day:02d}.md" for day in range(1, 11))
+LEARNING_10DAY_REFERENCE_FILES = (
+    "technical-qa.md",
+    "interview-qa.md",
+    "exercises.md",
+    "progress-checklist.md",
+)
+LEARNING_10DAY_DAY_HEADINGS = (
+    "오늘 답해야 할 핵심 질문",
+    "개념과 원리",
+    "OpenCV API와 파라미터",
+    "언제 사용하고 피하는가",
+    "프로젝트 코드 연결",
+    "직접 실험",
+    "예상 결과와 해석",
+    "자주 하는 실수와 디버깅",
+    "본인 말로 설명하기",
+    "완료 기준",
+)
+LEARNING_HUB_LOCAL_PATH_PATTERN = re.compile(r"(?i)(?:[A-Z]:\\Users\\|/(?:Users|home|tmp)/)")
+LEARNING_HUB_OFFICIAL_MVTEC_PATTERN = re.compile(
+    r"(?i)(?:official|공식)\s*(?:MVTec|mvtec).*?(?:claim|performance|성능|주장)"
+)
 REQUIRED_UI_PAGES = {
     "dataset_benchmark.py",
     "image_advisor.py",
@@ -353,9 +377,71 @@ def _validate_portfolio_consistency(repo_root: Path, errors: list[str]) -> None:
             errors.append("Portfolio PDF does not match a fresh deterministic build.")
 
 
+def validate_learning_hub(repo_root: Path) -> list[str]:
+    """Return content-contract errors for the canonical ten-day learning hub."""
+    errors: list[str] = []
+    hub_directory = repo_root / LEARNING_10DAY_DIR
+    if not hub_directory.is_dir():
+        return [f"Missing ten-day learning hub directory: {LEARNING_10DAY_DIR.as_posix()}"]
+
+    required_files = ("README.md", *LEARNING_10DAY_DAY_FILES, *LEARNING_10DAY_REFERENCE_FILES)
+    for filename in required_files:
+        if not (hub_directory / filename).is_file():
+            errors.append(
+                f"Missing ten-day learning hub file: {(LEARNING_10DAY_DIR / filename).as_posix()}"
+            )
+
+    for filename in LEARNING_10DAY_DAY_FILES:
+        day_path = hub_directory / filename
+        if not day_path.is_file():
+            continue
+        content = day_path.read_text(encoding="utf-8")
+        for heading in LEARNING_10DAY_DAY_HEADINGS:
+            if f"## {heading}" not in content:
+                errors.append(
+                    f"{(LEARNING_10DAY_DIR / filename).as_posix()}: missing heading: {heading}."
+                )
+
+    for filename in required_files:
+        source_path = hub_directory / filename
+        if not source_path.is_file():
+            continue
+        content = source_path.read_text(encoding="utf-8")
+        display_path = (LEARNING_10DAY_DIR / filename).as_posix()
+        if LEARNING_HUB_LOCAL_PATH_PATTERN.search(content):
+            errors.append(f"{display_path}: contains a forbidden local path.")
+        if LEARNING_HUB_OFFICIAL_MVTEC_PATTERN.search(content):
+            errors.append(f"{display_path}: makes an official-MVTec claim.")
+        for target in _markdown_link_targets(content):
+            target_path = _local_link_target(repo_root, source_path, target)
+            if target_path is None:
+                continue
+            try:
+                target_relative = target_path.relative_to(repo_root)
+            except ValueError:
+                errors.append(f"{display_path}: Markdown link escapes the repository: {target}.")
+                continue
+            if not target_path.exists():
+                errors.append(
+                    f"{display_path}: Markdown link target does not exist: "
+                    f"{target_relative.as_posix()}."
+                )
+                continue
+            if "#" not in target:
+                continue
+            anchor = unquote(target.split("#", maxsplit=1)[1]).casefold()
+            if target_path.suffix != ".md" or anchor not in _markdown_anchors(target_path):
+                errors.append(
+                    f"{display_path}: Markdown anchor does not exist: "
+                    f"{target_relative.as_posix()}#{anchor}."
+                )
+    return errors
+
+
 def validate_claims(repo_root: Path) -> list[str]:
     """Return every missing, unsafe, or inconsistent portfolio claim as readable text."""
     errors: list[str] = []
+    errors.extend(validate_learning_hub(repo_root))
     evidence_map = repo_root / EVIDENCE_MAP
     if not evidence_map.is_file():
         errors.append(f"Missing evidence map: {EVIDENCE_MAP}")
