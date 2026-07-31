@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from shutil import copytree
 
@@ -206,3 +207,35 @@ def test_validate_claims_deduplicates_hub_link_diagnostics(
     errors = validate_portfolio.validate_claims(tmp_path)
 
     assert errors.count(duplicate_error) == 1
+
+
+def test_days_one_to_five_are_deep_traceable_and_honest() -> None:
+    """Foundation pages must be usable lessons, not empty course placeholders."""
+    required_terms = {
+        1: ("io.py", "transforms.py", "BGR", "LAB"),
+        2: ("diagnostics.py", "entropy", "sharpness", "noise"),
+        3: ("clipLimit", "tileGridSize", "LAB L-channel", "gamma"),
+        4: ("Gaussian", "Median", "Bilateral", "oversmoothing"),
+        5: ("Sobel", "Scharr", "Canny", "connected components"),
+    }
+    for day, terms in required_terms.items():
+        text = (LEARNING_10DAY / f"day-{day:02d}.md").read_text(encoding="utf-8")
+        assert len(text) >= 6000
+        assert all(term in text for term in terms)
+        assert all(f"## {section}" in text for section in DAY_SECTIONS)
+        assert text.count("](../../src/") + text.count("](../../tests/") >= 3
+        assert "```python" in text
+        assert re.search(r"(?m)^\|\s*관찰", text)
+        assert len(re.findall(r"(?m)^- \[ \]", text)) >= 4
+
+        for paragraph in text.split("\n\n"):
+            normalized = paragraph.lower()
+            assert not (
+                ("시각적" in paragraph or "visual" in normalized)
+                and ("분류 성능" in paragraph or "classifier" in normalized)
+                and ("보장" in paragraph or "guarantee" in normalized)
+                and not re.search(
+                    r"보장하지 않|보장할 수 없|does not guarantee|cannot guarantee",
+                    normalized,
+                )
+            )
