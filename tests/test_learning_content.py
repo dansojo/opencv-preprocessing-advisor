@@ -43,6 +43,16 @@ def _heading_slugs(path: Path) -> set[str]:
     return {_github_slug(heading) for heading in headings}
 
 
+def _assert_local_markdown_link(source_path: Path, destination: str) -> None:
+    relative_path, separator, fragment = destination.partition("#")
+    target = source_path if not relative_path else (source_path.parent / relative_path).resolve()
+    assert target.is_file(), f"broken source link in {source_path.name}: {relative_path}"
+    if separator:
+        assert fragment in _heading_slugs(target), (
+            f"broken heading fragment in {source_path.name}: {destination}"
+        )
+
+
 def _sessions(text: str) -> list[str]:
     return re.split(r"(?m)^## Day \d+\b.*$", text)[1:]
 
@@ -95,16 +105,14 @@ def test_learning_pack_source_links_resolve_in_the_repository() -> None:
         path = LEARNING_DIR / filename
         assert path.is_file(), f"missing learning-pack file: {path}"
         for destination in SOURCE_LINK.findall(path.read_text(encoding="utf-8")):
-            if destination.startswith(("http://", "https://", "#")):
+            if destination.startswith(("http://", "https://")):
                 continue
-            relative_path, separator, fragment = destination.partition("#")
-            assert relative_path, f"empty source link in {filename}"
-            target = (path.parent / relative_path).resolve()
-            assert target.is_file(), f"broken source link in {filename}: {relative_path}"
-            if separator:
-                assert fragment in _heading_slugs(target), (
-                    f"broken heading fragment in {filename}: {destination}"
-                )
+            _assert_local_markdown_link(path, destination)
+
+
+def test_same_document_fragments_resolve_against_the_current_file_headings() -> None:
+    interview_qa = LEARNING_DIR / "interview-qa.md"
+    _assert_local_markdown_link(interview_qa, "#q01-bgr과-rgb를-왜-구분하나요")
 
 
 def test_exercises_are_implementation_or_experiment_practice() -> None:
