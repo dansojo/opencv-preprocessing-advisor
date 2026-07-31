@@ -38,7 +38,7 @@
 - [x] Every Day page contains the ten required sections in order and returns a complete closing page payload.
 - [x] Fetched reference counts are exactly 50 sequential technical Q&A, 35 sequential interview Q&A, and 30 sequential exercises.
 - [x] Every technical Q&A contains `한 문장 답`, `상세 설명`, `프로젝트 근거`, and `주의할 오해`; every exercise contains `선수 지식`, `문제`, `입력`, `요구 산출물`, `힌트`, `해설`, and `평가 기준`.
-- [x] No fetched page contains a Windows absolute path, `file://` URL, credential-shaped token, source MVTec image, or GT mask.
+- [x] No fetched page contains a Windows absolute path, `file://` URL, credential-shaped token, source MVTec image asset/path, or GT-mask asset/path; truthful scope disclaimers may mention those terms.
 - [x] The fetched hub preserves the scoped MVTec metrics and the explicit non-official-anomaly-metric warning.
 
 ## Owner-controlled public-release actions
