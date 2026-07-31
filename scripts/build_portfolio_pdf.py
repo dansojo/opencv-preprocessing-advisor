@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import json
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
+import yaml
 from reportlab.lib.colors import HexColor, white
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.utils import ImageReader
@@ -25,6 +29,161 @@ PANEL = HexColor("#F4F8FB")
 LINE = HexColor("#D7E3EC")
 FONT_NAME = "PortfolioKorean"
 FONT_BOLD = "PortfolioKoreanBold"
+
+
+@dataclass(frozen=True)
+class BenchmarkRow:
+    """One rounded leaderboard entry sourced from benchmark-evidence.json."""
+
+    pipeline: str
+    classifier: str
+    accuracy: float
+    macro_f1: float
+
+
+@dataclass(frozen=True)
+class PortfolioData:
+    """Verified canonical facts that are safe to present in the PDF."""
+
+    sample_count: int
+    class_count: int
+    folds: int
+    seed: int
+    top_pipelines: tuple[BenchmarkRow, ...]
+
+
+def _require_text(source: Path, text: str, required: tuple[str, ...]) -> None:
+    missing = [claim for claim in required if claim not in text]
+    if missing:
+        raise ValueError(f"{source.name} is missing required canonical claim: {missing[0]}")
+
+
+def _require_mapping(value: Any, path: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise TypeError(f"benchmark-evidence.json has invalid {path}")
+    return value
+
+
+def _display_metric(value: float) -> str:
+    return f"{value:.3f}"
+
+
+def load_portfolio_data(assets_dir: Path) -> PortfolioData:
+    """Load and cross-check Markdown, YAML, and benchmark evidence for the PDF."""
+    assets_dir = Path(assets_dir)
+    portfolio_dir = assets_dir.parent
+    canonical_sources = {
+        "case-study.md": (
+            "## 문제 정의",
+            "휴리스틱",
+            "LAB L-channel CLAHE",
+            "fold-local scaling",
+        ),
+        "experiment-results.md": (
+            "## 정확한 평가 프로토콜",
+            "## 리더보드",
+            "stratified 5-fold cross-validation",
+        ),
+        "limitations.md": (
+            "## 휴리스틱 추천의 한계",
+            "## GT와 MVTec 공식 평가의 부재",
+            "not classification accuracy",
+        ),
+        "evidence-map.md": (
+            "# OpenCV Portfolio Evidence Map",
+            "| Area | OpenCV technique |",
+            "RTrees",
+        ),
+    }
+    canonical_text: dict[str, str] = {}
+    for filename, required_claims in canonical_sources.items():
+        source = portfolio_dir / filename
+        if not source.is_file():
+            raise FileNotFoundError(f"Missing canonical portfolio source: {source}")
+        text = source.read_text(encoding="utf-8")
+        _require_text(source, text, required_claims)
+        canonical_text[filename] = text
+
+    evidence_path = portfolio_dir / "benchmark-evidence.json"
+    if not evidence_path.is_file():
+        raise FileNotFoundError(f"Missing canonical benchmark evidence: {evidence_path}")
+    try:
+        evidence = _require_mapping(json.loads(evidence_path.read_text(encoding="utf-8")), "root")
+    except json.JSONDecodeError as error:
+        raise ValueError(f"benchmark-evidence.json is invalid JSON: {error.msg}") from error
+
+    evaluation = _require_mapping(evidence.get("evaluation"), "evaluation")
+    rows = evidence.get("top_pipelines")
+    if not isinstance(rows, list) or len(rows) < 3:
+        raise ValueError("benchmark-evidence.json must contain at least three top_pipelines rows")
+    try:
+        data = PortfolioData(
+            sample_count=int(evidence["sample_count"]),
+            class_count=int(evidence["class_count"]),
+            folds=int(evaluation["folds"]),
+            seed=int(evaluation["seed"]),
+            top_pipelines=tuple(
+                BenchmarkRow(
+                    pipeline=str(_require_mapping(row, "top_pipelines row")["pipeline"]),
+                    classifier=str(_require_mapping(row, "top_pipelines row")["classifier"]),
+                    accuracy=float(_require_mapping(row, "top_pipelines row")["mean_accuracy"]),
+                    macro_f1=float(_require_mapping(row, "top_pipelines row")["mean_macro_f1"]),
+                )
+                for row in rows[:3]
+            ),
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError(
+            f"benchmark-evidence.json has invalid benchmark values: {error}"
+        ) from error
+
+    experiment = canonical_text["experiment-results.md"]
+    _require_text(
+        portfolio_dir / "experiment-results.md",
+        experiment,
+        (
+            f"총 {data.sample_count} images",
+            f"{data.class_count} classes",
+            f"seed {data.seed}",
+            f"stratified {data.folds}-fold cross-validation",
+        ),
+    )
+    for row in data.top_pipelines:
+        matching_rows = [line for line in experiment.splitlines() if f"| {row.pipeline} |" in line]
+        expected_values = (
+            row.classifier,
+            _display_metric(row.accuracy),
+            _display_metric(row.macro_f1),
+        )
+        if not matching_rows or not all(value in matching_rows[0] for value in expected_values):
+            raise ValueError(
+                "experiment-results.md does not match benchmark-evidence.json for "
+                f"{row.pipeline} + {row.classifier}"
+            )
+
+    pipeline_path = (
+        assets_dir.parents[2] / "src" / "opencv_preprocessing_advisor" / "config" / "pipelines.yaml"
+    )
+    if not pipeline_path.is_file():
+        raise FileNotFoundError(f"Missing canonical pipeline configuration: {pipeline_path}")
+    pipeline_config = yaml.safe_load(pipeline_path.read_text(encoding="utf-8"))
+    pipelines = _require_mapping(pipeline_config, "pipelines.yaml root").get("pipelines")
+    if not isinstance(pipelines, list):
+        raise TypeError("pipelines.yaml must contain a pipelines list")
+    pipeline_steps = {
+        str(item.get("id")): {str(step.get("transform")) for step in item.get("steps", [])}
+        for item in pipelines
+        if isinstance(item, dict)
+    }
+    required_pipeline_steps = {
+        "lab-clahe": {"lab_clahe"},
+        "clahe-bilateral": {"lab_clahe", "bilateral"},
+    }
+    for pipeline_id, expected_steps in required_pipeline_steps.items():
+        if not expected_steps.issubset(pipeline_steps.get(pipeline_id, set())):
+            raise ValueError(f"pipelines.yaml does not support canonical pipeline: {pipeline_id}")
+
+    return data
 
 
 def _register_korean_fonts() -> tuple[str, str]:
@@ -120,12 +279,19 @@ def _title(canvas: Canvas, title: str, subtitle: str) -> None:
 
 
 def _metric_card(
-    canvas: Canvas, x: float, y: float, width: float, value: str, label: str, color: HexColor
+    canvas: Canvas,
+    x: float,
+    y: float,
+    width: float,
+    value: str,
+    label: str,
+    color: HexColor,
+    value_size: float = 19,
 ) -> None:
     _rect(canvas, x, y, width, 77, PANEL)
     canvas.setFillColor(color)
     canvas.roundRect(x, y + 68, width, 9, 10, fill=1, stroke=0)
-    _text(canvas, value, x + 16, y + 39, 19, NAVY, bold=True)
+    _text(canvas, value, x + 14, y + 39, value_size, NAVY, bold=True)
     _text(canvas, label, x + 16, y + 18, 9, MUTED)
 
 
@@ -135,7 +301,7 @@ def _bullet(canvas: Canvas, x: float, y: float, text: str, color: HexColor = CYA
     _text(canvas, text, x + 15, y, 10, INK)
 
 
-def _page_one(canvas: Canvas, assets: Path) -> None:
+def _page_one(canvas: Canvas, assets: Path, data: PortfolioData) -> None:
     _page_shell(canvas, 1, "Project and impact")
     _title(
         canvas,
@@ -146,8 +312,8 @@ def _page_one(canvas: Canvas, assets: Path) -> None:
     _lines(
         canvas,
         [
-            "OpenCV Preprocessing Advisor는 이미지 상태를 진단하고 설명 가능한 Top 3 후보를 제안한다.",
-            "레이블이 있는 데이터셋에서는 같은 전처리를 교차 검증으로 다시 측정한다.",
+            "이미지 상태를 진단해 설명 가능한 Top 3 후보를 제안한다.",
+            "레이블 데이터셋에서는 같은 선택을 교차 검증으로 측정한다.",
         ],
         MARGIN,
         408,
@@ -155,14 +321,38 @@ def _page_one(canvas: Canvas, assets: Path) -> None:
         17,
     )
     card_y = 278
-    _metric_card(canvas, MARGIN, card_y, 153, "117 images", "MVTec tile 상태 폴더 분류 사례", CYAN)
+    metric_width = 120
     _metric_card(
-        canvas, MARGIN + 168, card_y, 153, "6 classes", "stratified 5-fold, seed 42", ORANGE
+        canvas,
+        MARGIN,
+        card_y,
+        metric_width,
+        f"{data.sample_count} images",
+        "tile 분류 사례",
+        CYAN,
+        value_size=15,
     )
     _metric_card(
-        canvas, MARGIN + 336, card_y, 157, "Macro F1 0.789", "Original + RTrees 최고 조합", CYAN
+        canvas,
+        MARGIN + 135,
+        card_y,
+        metric_width,
+        f"{data.class_count} classes",
+        f"{data.folds}-fold · seed {data.seed}",
+        ORANGE,
+        value_size=15,
     )
-    _rect(canvas, MARGIN, 145, 493, 91, ORANGE_PALE)
+    _metric_card(
+        canvas,
+        MARGIN + 270,
+        card_y,
+        metric_width,
+        _display_metric(data.top_pipelines[0].macro_f1),
+        f"Macro F1 {_display_metric(data.top_pipelines[0].macro_f1)}",
+        CYAN,
+        value_size=18,
+    )
+    _rect(canvas, MARGIN, 145, 372, 91, ORANGE_PALE)
     _text(canvas, "핵심 설계", MARGIN + 16, 207, 11, ORANGE, bold=True)
     _lines(
         canvas,
@@ -176,9 +366,27 @@ def _page_one(canvas: Canvas, assets: Path) -> None:
         18,
         NAVY,
     )
-    _rect(canvas, 557, 142, 250, 275, CYAN_PALE)
-    _draw_image(canvas, assets / "synthetic-advice-comparison.png", 568, 170, 228, 224)
-    _text(canvas, "프로젝트 코드가 생성한 합성 저대비 타일 비교", 570, 154, 9, MUTED)
+    _rect(canvas, 440, 128, 367, 289, CYAN_PALE)
+    _draw_image(canvas, assets / "synthetic-advice-comparison.png", 450, 146, 347, 261)
+    _text(canvas, "프로젝트 코드가 생성한 합성 저대비 타일 비교", 452, 134, 9, MUTED)
+
+
+def _draw_workflow_vector(canvas: Canvas, x: float, y: float, width: float) -> None:
+    """Recreate the committed workflow asset as a legible PDF-native diagram."""
+    steps = ["입력", "진단", "후보 실행", "Top 3", "교차 검증"]
+    step_width = 67
+    gap = (width - step_width * len(steps)) / (len(steps) - 1)
+    for index, step in enumerate(steps):
+        step_x = x + index * (step_width + gap)
+        _rect(canvas, step_x, y, step_width, 40, CYAN_PALE if index != 3 else ORANGE_PALE)
+        _text(canvas, step, step_x + 14, y + 15, 11, NAVY, bold=True)
+        if index < len(steps) - 1:
+            arrow_x = step_x + step_width + 5
+            canvas.setStrokeColor(CYAN)
+            canvas.setLineWidth(1.4)
+            canvas.line(arrow_x, y + 20, arrow_x + gap - 10, y + 20)
+            canvas.line(arrow_x + gap - 16, y + 25, arrow_x + gap - 10, y + 20)
+            canvas.line(arrow_x + gap - 16, y + 15, arrow_x + gap - 10, y + 20)
 
 
 def _page_two(canvas: Canvas, assets: Path) -> None:
@@ -220,8 +428,8 @@ def _page_two(canvas: Canvas, assets: Path) -> None:
         bold=True,
     )
     _rect(canvas, 384, 115, 423, 102, PANEL)
-    _draw_image(canvas, assets / "workflow.png", 396, 136, 399, 70)
-    _text(canvas, "입력 → 진단 → 후보 실행 → Top 3 → 선택적 교차 검증", 397, 121, 9, MUTED)
+    _draw_workflow_vector(canvas, 402, 153, 387)
+    _text(canvas, "committed workflow.png을 바탕으로 PDF에서 벡터로 재구성", 402, 127, 9, MUTED)
 
 
 def _page_three(canvas: Canvas) -> None:
@@ -347,19 +555,22 @@ def _page_four(canvas: Canvas, assets: Path) -> None:
     )
 
 
-def _page_five(canvas: Canvas, assets: Path) -> None:
+def _page_five(canvas: Canvas, assets: Path, data: PortfolioData) -> None:
     _page_shell(canvas, 5, "Benchmark and failure insight")
     _title(
         canvas,
         "원본이 이긴 것도 중요한 엔지니어링 결론",
-        "MVTec tile 상태 폴더 6개를 클래스로 해석한 제한된 분류 실험",
+        f"MVTec tile 상태 폴더 {data.class_count}개를 클래스로 해석한 제한된 분류 실험",
     )
     _rect(canvas, MARGIN, 294, 343, 125, PANEL)
     _text(canvas, "Top 3 leaderboard", MARGIN + 16, 392, 12, NAVY, bold=True)
     rows = [
-        ("Original + RTrees", "0.804", "0.789"),
-        ("CLAHE + Bilateral", "0.766", "0.731"),
-        ("LAB CLAHE", "0.664", "0.594"),
+        (
+            f"{row.pipeline} ({row.classifier})",
+            _display_metric(row.accuracy),
+            _display_metric(row.macro_f1),
+        )
+        for row in data.top_pipelines
     ]
     _text(canvas, "Pipeline", MARGIN + 16, 370, 9, MUTED, bold=True)
     _text(canvas, "Accuracy", 230, 370, 9, MUTED, bold=True)
@@ -478,12 +689,13 @@ def build_pdf(output_path: Path, assets_dir: Path) -> Path:
     if missing:
         raise FileNotFoundError(f"Missing portfolio assets: {', '.join(missing)}")
 
+    data = load_portfolio_data(assets_dir)
     _register_korean_fonts()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     canvas = Canvas(str(output_path), pagesize=(PAGE_WIDTH, PAGE_HEIGHT), pageCompression=1)
     canvas.setTitle("OpenCV Preprocessing Advisor Portfolio")
     canvas.setAuthor("OpenCV Preprocessing Advisor")
-    _page_one(canvas, assets_dir)
+    _page_one(canvas, assets_dir, data)
     canvas.showPage()
     _page_two(canvas, assets_dir)
     canvas.showPage()
@@ -491,7 +703,7 @@ def build_pdf(output_path: Path, assets_dir: Path) -> Path:
     canvas.showPage()
     _page_four(canvas, assets_dir)
     canvas.showPage()
-    _page_five(canvas, assets_dir)
+    _page_five(canvas, assets_dir, data)
     canvas.showPage()
     _page_six(canvas)
     canvas.save()
