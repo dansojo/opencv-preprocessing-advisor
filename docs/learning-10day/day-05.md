@@ -5,7 +5,7 @@
 ## 오늘 답해야 할 핵심 질문
 
 - Sobel, Scharr, Laplacian은 1차·2차 미분 관점에서 무엇이 다른가?
-- Canny는 blur 뒤 gradient만 계산하는 함수가 아니라 어떤 단계를 거치는가?
+- 표준 Canny workflow의 선택적 blur와 `cv2.Canny` API 자체의 단계는 어떻게 다른가?
 - global, adaptive, Otsu threshold는 각각 어떤 조명 가정에 의존하는가?
 - erosion, dilation, opening, closing은 전경·배경 정의에 따라 어떻게 해석해야 하는가?
 - contour와 connected components는 언제 서로 바꿔 쓰면 안 되는가?
@@ -14,7 +14,7 @@
 
 에지는 밝기 변화가 큰 위치다. grayscale `I`에서 Sobel은 x/y 방향의 1차 미분 근사 `Gx`, `Gy`를 convolution으로 구하고, 크기는 `sqrt(Gx² + Gy²)` 또는 빠른 근사 `|Gx|+|Gy|`로 본다. 방향은 `atan2(Gy, Gx)`다. `ksize=3` Sobel은 널리 쓰이는 시작점이며, **Scharr**는 3×3 크기에서 회전 대칭성/정확도를 개선한 커널로 작은 kernel 미분이 중요할 때 후보다. Laplacian은 2차 미분이라 급격한 변화에 반응하지만 noise에도 민감하고, 부호가 바뀌는 zero-crossing 해석이 필요하다.
 
-**Canny**는 단순한 에지 필터가 아니라 단계적 검출기다. (1) Gaussian blur로 noise를 줄이고, (2) gradient magnitude와 direction을 계산하고, (3) non-maximum suppression(NMS)으로 방향상 최대인 가는 선만 남기고, (4) low/high double threshold로 strong/weak/non-edge를 나누고, (5) hysteresis로 strong edge에 연결된 weak edge만 살린다. high threshold만 올리는 것, blur를 생략하는 것은 다른 단계의 효과를 무시하는 설정이다.
+전형적인 **Canny workflow**에서는 noise에 민감한 gradient를 계산하기 전에 Gaussian blur를 *선택적으로, 호출자가 명시해* 적용할 수 있다. 그 뒤 Canny 검출 단계는 (1) gradient magnitude와 direction 계산, (2) non-maximum suppression(NMS)으로 방향상 최대인 가는 선만 남기기, (3) low/high double threshold로 strong/weak/non-edge 나누기, (4) hysteresis로 strong edge에 연결된 weak edge만 살리기다. 중요한 API 경계는 `cv2.Canny는 Gaussian blur를 내부적으로 호출하지 않는다`는 점이다. 즉 `cv2.Canny(gray, low, high)`에 넣는 영상이 이미 smoothing됐는지와 blur kernel은 호출자가 정한다. high threshold만 바꾸거나, 필요할 수 있는 사전 blur의 효과를 threshold 효과로 설명하면 원인을 잘못 해석한다.
 
 threshold는 grayscale을 이진 mask로 바꾸는 결정 경계다. global threshold는 하나의 `T`로 `I>T`를 전경으로 하므로 조명이 균일하고 히스토그램이 분리될 때 간단하다. Otsu는 히스토그램에서 class 간 분산을 크게 하는 T를 자동으로 찾지만, 두 분포가 잘 분리된다는 가정이 약하면 흔들린다. adaptive threshold는 주변 block마다 T를 잡아 조명 그라데이션에 대응할 수 있지만, blockSize와 C에 따라 정상 texture를 조각낼 수 있다.
 
@@ -29,7 +29,8 @@ morphology는 binary 또는 grayscale 이미지에서 구조 요소(structuring 
 | API | 핵심 인자 | 결과 | 주의점 |
 | --- | --- | --- | --- |
 | `cv2.Sobel` / `cv2.Scharr` | `ddepth`, 방향, ksize | 방향별 gradient | `uint8` 출력은 음수 gradient를 잃을 수 있어 `CV_32F`/`CV_64F`를 쓴다. |
-| `cv2.Canny` | low/high threshold | 가는 binary edge | blur·NMS·hysteresis가 함께 작동한다. |
+| `cv2.GaussianBlur` | 홀수 kernel, sigma | 선택적인 사전 smoothing | `cv2.Canny`와 별도 호출이다. blur가 필요한지와 강도는 입력 noise에 따라 정한다. |
+| `cv2.Canny` | low/high threshold, 선택적 aperture/L2gradient | 가는 binary edge | API는 gradient·NMS·double threshold·hysteresis를 수행하며 Gaussian blur를 내장하지 않는다. |
 | `cv2.threshold(..., OTSU)` | global T + Otsu flag | 한 임계값 mask | 조명 그라데이션/단봉 분포에서 불안정할 수 있다. |
 | `cv2.adaptiveThreshold` | blockSize, C | local threshold mask | blockSize는 홀수, 너무 작으면 texture가 분할된다. |
 | `morphologyEx` | operation, kernel | opening/closing/black-hat 등 | 흰 전경/검정 배경 가정을 확인한다. |
@@ -54,7 +55,7 @@ Sobel/Scharr는 방향성 gradient를 특징으로 쓰거나 경계 후보를 �
 
 ## 직접 실험
 
-아래 코드는 합성 타일에서 Sobel/Scharr/Canny와 Otsu/adaptive threshold를 만들고, closing 전후의 connected components 통계를 비교한다. white foreground를 명시해 mask 해석을 고정한다.
+아래 코드는 합성 타일에서 Sobel/Scharr/Canny와 Otsu/adaptive threshold를 만들고, closing 전후의 connected components 통계를 비교한다. `GaussianBlur`는 `cv2.Canny`에 앞서 **선택적으로 명시한 Gaussian blur**이며 API 내부 동작이 아니다. white foreground를 명시해 mask 해석을 고정한다.
 
 ```python
 from pathlib import Path
@@ -89,7 +90,7 @@ print("Sobel/Scharr mean abs:", np.mean(np.abs(sobel_x)), np.mean(np.abs(scharr_
 | 관찰 | 예상 결과 | 해석과 다음 질문 |
 | --- | --- | --- |
 | Sobel vs Scharr | 둘 다 방향 gradient를 보이며 크기 scale은 다를 수 있음 | 같은 threshold로 단순 비교하지 말고 방향·kernel 목적을 본다. |
-| Canny | blur/NMS/hysteresis 뒤 가는 edge mask | threshold 변화가 약한 구조 연결을 어떻게 바꾸는지 기록한다. |
+| Canny | 선택적으로 명시한 Gaussian blur 입력에서 API의 gradient/NMS/double threshold/hysteresis 뒤 가는 edge mask | blur 유무·kernel과 threshold를 별도 변수로 바꿔 약한 구조 연결을 기록한다. |
 | Otsu | 전역 분포가 분리되면 간단한 mask | 조명 차이가 크면 배경까지 전경이 될 수 있다. |
 | adaptive | 지역 밝기에 반응하는 조각 mask 가능 | blockSize/C가 texture를 결함처럼 분할했는지 확인한다. |
 | closing + components | 틈은 줄고 component 면적·개수는 변할 수 있음 | 실제 객체가 합쳐졌다면 kernel이 과하다. |
@@ -99,22 +100,22 @@ print("Sobel/Scharr mean abs:", np.mean(np.abs(sobel_x)), np.mean(np.abs(scharr_
 ## 자주 하는 실수와 디버깅
 
 1. **Sobel을 `uint8`에 바로 저장**: 음수 미분이 잘려 방향 정보가 망가질 수 있다. 계산은 float depth로 하고 표시만 절댓값/스케일링한다.
-2. **Canny를 단일 threshold라고 생각**: low/high의 역할과 blur, NMS, hysteresis 전체를 설명한다.
+2. **Canny smoothing의 위치를 혼동**: low/high와 NMS·hysteresis는 `cv2.Canny`의 검출 단계다. Gaussian blur는 필요하면 그 전에 별도 호출하며, API가 내부적으로 수행한다고 말하지 않는다.
 3. **threshold 극성 미확인**: 흰색이 전경인지 확인하지 않으면 erosion/dilation의 설명이 반대가 된다.
 4. **adaptive blockSize를 짝수로 지정**: OpenCV 요구를 확인하고 3 이상의 홀수를 사용한다.
 5. **contour 수와 object 수를 동일시**: 구멍·계층·접촉 객체 때문에 달라질 수 있다. area 통계는 connected components가 더 직접적이다.
 
-mask가 전부 흰색/검은색이면 gray range와 threshold 값을 먼저 출력한다. component 수가 갑자기 커지면 threshold보다 morphology 전의 mask와 connectivity를 확인한다. Canny가 텅 비면 blur kernel, low/high, 영상 median 기반 기준을 차례대로 바꾼다.
+mask가 전부 흰색/검은색이면 gray range와 threshold 값을 먼저 출력한다. component 수가 갑자기 커지면 threshold보다 morphology 전의 mask와 connectivity를 확인한다. Canny가 텅 비면 먼저 사전 `GaussianBlur`를 쓸지와 그 kernel을 결정하고, 그 다음 `cv2.Canny`의 low/high와 영상 median 기반 기준을 차례대로 바꾼다.
 
 ## 본인 말로 설명하기
 
 ### 1분 설명
 
-“Sobel과 Scharr는 밝기 1차 미분으로 방향 에지를 보고, Laplacian은 2차 미분이라 변화와 noise에 더 민감합니다. Canny는 blur, gradient, non-maximum suppression, double threshold, hysteresis로 가는 연결 에지를 만드는 전체 과정입니다. threshold는 전역·Otsu·adaptive가 조명 가정을 달리하고, morphology는 흰 전경이라는 약속 아래 작은 점과 틈을 정리합니다. contour는 경계 기하, connected components는 객체 수·면적·중심 통계에 적합합니다. 깔끔한 mask가 분류 성능을 뜻하지는 않습니다.”
+“Sobel과 Scharr는 밝기 1차 미분으로 방향 에지를 보고, Laplacian은 2차 미분이라 변화와 noise에 더 민감합니다. 전형적인 Canny workflow에서는 필요하면 `GaussianBlur`를 **별도 호출**한 뒤 `cv2.Canny`를 호출합니다. `cv2.Canny` 자체는 gradient, non-maximum suppression, double threshold, hysteresis를 수행하며 blur를 내부 호출하지 않습니다. threshold는 전역·Otsu·adaptive가 조명 가정을 달리하고, morphology는 흰 전경이라는 약속 아래 작은 점과 틈을 정리합니다. contour는 경계 기하, connected components는 객체 수·면적·중심 통계에 적합합니다. 깔끔한 mask가 분류 성능을 뜻하지는 않습니다.”
 
 ### 깊이 설명
 
-“구조 추출은 연속 밝기 영상을 이산 결정으로 바꾸므로 가정이 크게 작용합니다. Sobel/Scharr의 gradient는 방향성 특징이고 Canny는 noise 억제부터 edge 연결 판정까지 포함합니다. global/Otsu threshold는 한 값으로 분리된 분포를 가정하고, adaptive는 지역 조명에 대응하지만 texture를 과분할할 수 있습니다. morphology는 structuring element 크기를 도메인의 최소 의미 구조와 맞춰야 하며, opening/closing은 실제 결함을 제거하거나 합칠 위험이 있습니다. 마지막 mask에서 boundary 길이·계층은 contours, object statistics는 connected components로 나눠 다룹니다. 이 프로젝트의 continuity도 Canny component 기반 heuristic이므로 label 기반 classifier 결과와 혼동하지 않습니다.”
+“구조 추출은 연속 밝기 영상을 이산 결정으로 바꾸므로 가정이 크게 작용합니다. Sobel/Scharr의 gradient는 방향성 특징입니다. 표준 Canny 문헌의 noise 억제용 Gaussian smoothing은 선택적인 전처리이고, OpenCV에서는 호출자가 `cv2.GaussianBlur`로 명시한다는 API 경계를 지켜야 합니다. 그 입력을 받은 `cv2.Canny`는 gradient, NMS, double threshold, hysteresis로 edge 연결을 판정합니다. global/Otsu threshold는 한 값으로 분리된 분포를 가정하고, adaptive는 지역 조명에 대응하지만 texture를 과분할할 수 있습니다. morphology는 structuring element 크기를 도메인의 최소 의미 구조와 맞춰야 하며, opening/closing은 실제 결함을 제거하거나 합칠 위험이 있습니다. 마지막 mask에서 boundary 길이·계층은 contours, object statistics는 connected components로 나눠 다룹니다. 이 프로젝트의 continuity도 Canny component 기반 heuristic이므로 label 기반 classifier 결과와 혼동하지 않습니다.”
 
 ## 완료 기준
 

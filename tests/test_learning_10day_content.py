@@ -239,3 +239,11 @@ def test_days_one_to_five_are_deep_traceable_and_honest() -> None:
                     normalized,
                 )
             )
+
+
+def test_day_five_distinguishes_explicit_canny_smoothing_from_the_api() -> None:
+    """Prevent teaching that cv2.Canny performs Gaussian smoothing implicitly."""
+    text = (LEARNING_10DAY / "day-05.md").read_text(encoding="utf-8")
+
+    assert "cv2.Canny는 Gaussian blur를 내부적으로 호출하지 않는다" in text
+    assert "선택적으로 명시한 Gaussian blur" in text
