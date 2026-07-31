@@ -10,6 +10,7 @@ from scripts.validate_portfolio import validate_claims
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 NOTION_CASE_STUDY_URL = "https://app.notion.com/p/3aed0dc3cc1d81c0977fd982867f94e1"
+NOTION_LEARNING_HUB_MAP = PROJECT_ROOT / "docs" / "portfolio" / "notion-learning-hub-map.json"
 
 PORTFOLIO_ROOT = PROJECT_ROOT / "docs" / "portfolio"
 BENCHMARK_EVIDENCE = PORTFOLIO_ROOT / "benchmark-evidence.json"
@@ -17,6 +18,67 @@ CONFUSION_MATRIX = PORTFOLIO_ROOT / "assets" / "mvtec-tile-best-confusion-matrix
 PIPELINE_CONFIG = (
     PROJECT_ROOT / "src" / "opencv_preprocessing_advisor" / "config" / "pipelines.yaml"
 )
+
+
+def test_notion_learning_hub_map_records_complete_unique_topology():
+    assert NOTION_LEARNING_HUB_MAP.is_file()
+    topology = json.loads(NOTION_LEARNING_HUB_MAP.read_text(encoding="utf-8"))
+
+    assert set(topology) == {
+        "hub",
+        "course_index",
+        "days",
+        "technical_qa",
+        "interview_qa",
+        "exercises",
+        "progress_checklist",
+    }
+    assert topology["hub"] == NOTION_CASE_STUDY_URL
+    assert set(topology["days"]) == {str(day) for day in range(1, 11)}
+    urls = [
+        topology["hub"],
+        topology["course_index"],
+        topology["technical_qa"],
+        topology["interview_qa"],
+        topology["exercises"],
+        topology["progress_checklist"],
+        *topology["days"].values(),
+    ]
+    assert len(urls) == 16
+    assert len(set(urls)) == 16
+    assert all(url.startswith("https://app.notion.com/p/") for url in urls)
+    assert all("pending" not in url.casefold() for url in urls)
+
+
+def test_readmes_and_notion_source_link_the_published_course_index():
+    topology = json.loads(NOTION_LEARNING_HUB_MAP.read_text(encoding="utf-8"))
+    course_url = topology["course_index"]
+
+    for path in (
+        PROJECT_ROOT / "README.md",
+        PROJECT_ROOT / "README_EN.md",
+        PORTFOLIO_ROOT / "notion-case-study.md",
+    ):
+        assert course_url in path.read_text(encoding="utf-8")
+
+
+def test_claim_validator_rejects_duplicate_notion_learning_page_urls(tmp_path):
+    copied_root = tmp_path / "repository"
+    copytree(
+        PROJECT_ROOT,
+        copied_root,
+        ignore=ignore_patterns(".git", ".pytest_cache", ".ruff_cache", ".superpowers"),
+    )
+    map_path = copied_root / "docs" / "portfolio" / "notion-learning-hub-map.json"
+    topology = json.loads(map_path.read_text(encoding="utf-8"))
+    topology["days"]["10"] = topology["days"]["9"]
+    map_path.write_text(json.dumps(topology, ensure_ascii=False), encoding="utf-8")
+
+    errors = validate_claims(copied_root)
+
+    assert "Notion learning-hub URLs must be unique." in errors
+
+
 REQUIRED_CASE_STUDY_HEADINGS = {
     "문제 정의",
     "단계 진단",
@@ -75,6 +137,7 @@ NOTION_CASE_STUDY_HEADINGS = {
     "실패 해석",
     "트러블슈팅",
     "한계와 다음 실험",
+    "학습 허브",
 }
 NOTION_CASE_STUDY_METRICS = {"117", "6", "0.804", "0.789"}
 GITHUB_MAIN_SOURCE_LINK = re.compile(
@@ -95,6 +158,7 @@ NOTION_CALLOUTS = {
 NOTION_TABLE_HEADERS = (
     ("Pipeline", "Classifier", "Accuracy", "Macro F1"),
     ("증상", "먼저 확인할 근거", "대응"),
+    ("경로", "무엇을 증명하는가"),
 )
 
 
@@ -463,7 +527,7 @@ def test_local_notion_case_study_is_complete_and_traceable():
         content,
         re.DOTALL,
     )
-    assert len(tables) == 2
+    assert len(tables) == len(NOTION_TABLE_HEADERS)
     for headers, table in zip(NOTION_TABLE_HEADERS, tables, strict=True):
         expected_header = "\n".join(
             ("\t<tr>", *(f"\t\t<td>{header}</td>" for header in headers), "\t</tr>")

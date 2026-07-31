@@ -1,0 +1,20 @@
+{
+  "hub": "https://app.notion.com/p/3aed0dc3cc1d81c0977fd982867f94e1",
+  "course_index": "https://app.notion.com/p/3aed0dc3cc1d816da128f233f7bec8de",
+  "days": {
+    "1": "https://app.notion.com/p/3aed0dc3cc1d81dcadd8c53257208eab",
+    "2": "https://app.notion.com/p/3aed0dc3cc1d819d894dd46a393087b4",
+    "3": "https://app.notion.com/p/3aed0dc3cc1d81e88ae3d659a9fe5717",
+    "4": "https://app.notion.com/p/3aed0dc3cc1d81ddbbdbea75931c3466",
+    "5": "https://app.notion.com/p/3aed0dc3cc1d810d964cd7a25d5f45e1",
+    "6": "https://app.notion.com/p/3aed0dc3cc1d8139a255d54c176fee10",
+    "7": "https://app.notion.com/p/3aed0dc3cc1d81509b3cc590af63d8ba",
+    "8": "https://app.notion.com/p/3aed0dc3cc1d817eabcec282d203ce22",
+    "9": "https://app.notion.com/p/3aed0dc3cc1d81a4a188c5b41703438f",
+    "10": "https://app.notion.com/p/3aed0dc3cc1d81039a6cec96a67e6514"
+  },
+  "technical_qa": "https://app.notion.com/p/3aed0dc3cc1d8119937fcfde1ce379d4",
+  "interview_qa": "https://app.notion.com/p/3aed0dc3cc1d81c8ba73ff7a7cac7b80",
+  "exercises": "https://app.notion.com/p/3aed0dc3cc1d81959b74e66af4f1b36f",
+  "progress_checklist": "https://app.notion.com/p/3aed0dc3cc1d8153aa83c7ca8588a04b"
+}

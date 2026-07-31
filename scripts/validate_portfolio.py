@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import tempfile
@@ -19,6 +20,7 @@ EVIDENCE_MAP = Path("docs/portfolio/evidence-map.md")
 README = Path("README.md")
 README_EN = Path("README_EN.md")
 NOTION_SOURCE = Path("docs/portfolio/notion-case-study.md")
+NOTION_LEARNING_HUB_MAP = Path("docs/portfolio/notion-learning-hub-map.json")
 PORTFOLIO_PDF = Path("output/pdf/opencv-preprocessing-advisor-portfolio.pdf")
 PYPROJECT = Path("pyproject.toml")
 NOTION_CASE_STUDY_URL = "https://app.notion.com/p/3aed0dc3cc1d81c0977fd982867f94e1"
@@ -388,6 +390,62 @@ def _validate_portfolio_consistency(repo_root: Path, errors: list[str]) -> None:
             errors.append("Portfolio PDF does not match a fresh deterministic build.")
 
 
+def _validate_notion_learning_map(repo_root: Path, errors: list[str]) -> None:
+    map_path = repo_root / NOTION_LEARNING_HUB_MAP
+    if not map_path.is_file():
+        errors.append(f"Missing Notion learning-hub map: {NOTION_LEARNING_HUB_MAP}")
+        return
+    try:
+        topology = json.loads(map_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        errors.append("Notion learning-hub map must be valid UTF-8 JSON.")
+        return
+
+    expected_keys = {
+        "hub",
+        "course_index",
+        "days",
+        "technical_qa",
+        "interview_qa",
+        "exercises",
+        "progress_checklist",
+    }
+    if not isinstance(topology, dict) or set(topology) != expected_keys:
+        errors.append("Notion learning-hub map must contain the exact published topology keys.")
+        return
+    days = topology.get("days")
+    expected_days = {str(day) for day in range(1, 11)}
+    if not isinstance(days, dict) or set(days) != expected_days:
+        errors.append("Notion learning-hub map must contain Day 1 through Day 10 URLs.")
+        return
+    urls = [
+        topology["hub"],
+        topology["course_index"],
+        topology["technical_qa"],
+        topology["interview_qa"],
+        topology["exercises"],
+        topology["progress_checklist"],
+        *days.values(),
+    ]
+    if not all(isinstance(url, str) for url in urls):
+        errors.append("Notion learning-hub map values must be URLs.")
+        return
+    if len(set(urls)) != len(urls):
+        errors.append("Notion learning-hub URLs must be unique.")
+    if any(not url.startswith("https://app.notion.com/p/") for url in urls):
+        errors.append("Notion learning-hub URLs must use canonical app.notion.com page URLs.")
+    if any("pending" in url.casefold() for url in urls):
+        errors.append("Notion learning-hub map contains an unresolved URL marker.")
+    if topology["hub"] != NOTION_CASE_STUDY_URL:
+        errors.append("Notion learning-hub map must preserve the verified portfolio hub URL.")
+
+    course_url = topology["course_index"]
+    for source in (README, README_EN, NOTION_SOURCE):
+        source_path = repo_root / source
+        if source_path.is_file() and course_url not in source_path.read_text(encoding="utf-8"):
+            errors.append(f"{source} must link the published Notion course index.")
+
+
 def _makes_official_mvtec_claim(content: str) -> bool:
     """Return whether a line claims official MVTec benchmark performance."""
     for line in content.splitlines():
@@ -474,6 +532,7 @@ def validate_claims(repo_root: Path) -> list[str]:
     """Return every missing, unsafe, or inconsistent portfolio claim as readable text."""
     errors: list[str] = []
     errors.extend(validate_learning_hub(repo_root))
+    _validate_notion_learning_map(repo_root, errors)
     evidence_map = repo_root / EVIDENCE_MAP
     if not evidence_map.is_file():
         errors.append(f"Missing evidence map: {EVIDENCE_MAP}")

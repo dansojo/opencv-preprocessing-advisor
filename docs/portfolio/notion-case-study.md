@@ -155,3 +155,41 @@ CLAHE + Bilateral의 Macro F1은 0.731, LAB CLAHE는 0.594로 원본보다 낮�
 현재 범위는 모든 OpenCV API, 모든 분류기, 깊은 특징, 모든 산업 이미지의 최적화를 주장하지 않는다. Advisor는 휴리스틱이고, MVTec 사례는 117 images·6개 클래스·seed 42·고정 특징·선택한 세 파이프라인의 제한된 관찰이다. GT mask와 공식 anomaly-detection 프로토콜도 범위 밖이다.
 
 다음 실험에서는 (1) 다른 class/촬영 조건/seed에서 동일 보고서를 생성해 fold별 변동을 비교하고, (2) feature profile 및 전처리 parameter ablation을 수행하며, (3) 각 훈련 fold에서만 학습한 SIFT vocabulary를 통합하고, (4) GT mask와 공식 정의에 맞는 별도 anomaly-detection 평가를 구현한다. 각 단계는 지금의 [한계 문서](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/docs/portfolio/limitations.md)와 [증거 맵](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/docs/portfolio/evidence-map.md)를 갱신해, 새 주장보다 먼저 검증 경로를 남겨야 한다.
+
+## 학습 허브
+
+<callout icon="🎓" color="blue_bg">
+	**포트폴리오에서 학습으로 이어지는 경로**
+	프로젝트 결과를 보는 데서 끝내지 않고, OpenCV의 원리·API·실험·해석·설명까지 직접 재현할 수 있도록 10일 심화 과정과 독립 참고서를 연결했다. 하루 분량 제한 없이 각 문서의 완료 기준을 충족하는 방식이다.
+</callout>
+
+<table fit-page-width="true" header-row="true">
+	<tr>
+		<td>경로</td>
+		<td>무엇을 증명하는가</td>
+	</tr>
+	<tr>
+		<td>[10일 OpenCV 심화 학습 과정](https://app.notion.com/p/3aed0dc3cc1d816da128f233f7bec8de)</td>
+		<td>이미지 표현부터 진단·전처리·특징·cv2.ml·교차 검증·프로젝트 설명까지 순서대로 학습</td>
+	</tr>
+	<tr>
+		<td>[OpenCV 기술 Q&amp;A](https://app.notion.com/p/3aed0dc3cc1d8119937fcfde1ce379d4)</td>
+		<td>API와 파라미터, 사용 조건, 코드 근거를 빠르게 복습</td>
+	</tr>
+	<tr>
+		<td>[프로젝트·면접 질문과 모범 답안](https://app.notion.com/p/3aed0dc3cc1d81c8ba73ff7a7cac7b80)</td>
+		<td>30초 핵심 답변과 2분 심화 답변을 실제 근거로 연습</td>
+	</tr>
+	<tr>
+		<td>[실습 과제와 해설](https://app.notion.com/p/3aed0dc3cc1d81959b74e66af4f1b36f)</td>
+		<td>Guided·Analytical·Reimplementation 과제로 구현과 해석을 검증</td>
+	</tr>
+	<tr>
+		<td>[진도 및 설명 능력 체크리스트](https://app.notion.com/p/3aed0dc3cc1d8153aa83c7ca8588a04b)</td>
+		<td>이해·구현·해석·설명 능력을 증거 링크와 함께 기록</td>
+	</tr>
+</table>
+
+<callout icon="⚠️" color="yellow_bg">
+	학습 허브도 기존 포트폴리오와 같은 경계를 지킨다. 단일 이미지 추천은 **휴리스틱 실험 우선순위**이고, 117 images·6 classes·stratified 5-fold·seed 42의 Accuracy 0.804와 Macro F1 0.789는 `tile/test` 상태 폴더를 분류 클래스로 해석한 제한된 실험이며 공식 MVTec anomaly-detection 지표가 아니다.
+</callout>

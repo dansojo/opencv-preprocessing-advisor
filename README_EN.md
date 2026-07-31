@@ -107,5 +107,6 @@ The project does not claim every OpenCV API, deep learning, or official MVTec an
 ### Notion case study
 
 - [Detailed Notion case study](https://app.notion.com/p/3aed0dc3cc1d81c0977fd982867f94e1) — a verified 12-section source covering the project background, design decisions, MVTec experiment, failure interpretation, limitations, and next experiments. The page is currently private; do not treat the link as publicly accessible until the owner explicitly approves sharing and anonymous access is verified.
+- [10-day OpenCV deep-learning course](https://app.notion.com/p/3aed0dc3cc1d816da128f233f7bec8de) — a private learning hub that connects image representation, diagnostics, preprocessing, features, `cv2.ml`, cross-validation, and project explanation through Days 1–10 plus separate Q&A, interview, and exercise references.
 
 The private Notion source uses the same metrics and limitations as the repository sources above, with implementation evidence traced to GitHub `main`.
