@@ -1,4 +1,4 @@
-# Day 5 - 에지·경계·형태학
+# Day 5 - 에지·임계처리·형태학
 
 오늘은 밝기 영상에서 구조를 꺼내는 도구를 다룬다. 미분 기반 에지, threshold, morphology, contour와 connected components는 비슷해 보이는 흰/검정 mask를 만들지만 질문과 출력의 의미가 다르다.
 

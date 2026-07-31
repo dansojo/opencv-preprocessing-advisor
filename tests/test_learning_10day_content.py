@@ -13,6 +13,18 @@ from scripts import validate_portfolio
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 LEARNING_10DAY = PROJECT_ROOT / "docs" / "learning-10day"
 DAY_FILES = tuple(f"day-{day:02d}.md" for day in range(1, 11))
+DAY_TITLES = (
+    "Day 1 - 이미지 데이터와 OpenCV 기초",
+    "Day 2 - 이미지 상태 진단",
+    "Day 3 - 밝기와 대비 전처리",
+    "Day 4 - 노이즈와 필터링",
+    "Day 5 - 에지·임계처리·형태학",
+    "Day 6 - 전처리 파이프라인과 추천 점수",
+    "Day 7 - OpenCV 특징 추출",
+    "Day 8 - OpenCV 분류기",
+    "Day 9 - 평가와 재현성",
+    "Day 10 - 프로젝트 전체 설명과 실전 대응",
+)
 REFERENCE_FILES = (
     "technical-qa.md",
     "interview-qa.md",
@@ -63,8 +75,10 @@ def test_ten_day_learning_hub_has_exact_topology_and_ordered_course_index() -> N
     ):
         assert target in readme
 
-    for filename in DAY_FILES:
+    for filename, title in zip(DAY_FILES, DAY_TITLES, strict=True):
         content = (LEARNING_10DAY / filename).read_text(encoding="utf-8")
+        assert content.splitlines()[0] == f"# {title}"
+        assert f"[{title}]({filename})" in readme
         positions = [content.index(f"## {heading}") for heading in DAY_SECTIONS]
         assert positions == sorted(positions)
     for filename, title in REFERENCE_TITLES.items():
