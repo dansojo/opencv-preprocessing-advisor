@@ -24,4 +24,4 @@ Advisor는 밝기, 대비, 노이즈, 에지, 색상, 클리핑 같은 진단 �
 
 현재 비교는 HSV/LAB 히스토그램, HOG, Sobel/Laplacian/Gabor 통계와 OpenCV `cv2.ml`의 SVM, kNN, RTrees에 집중한다. 이 선택은 OpenCV 중심의 재현 가능한 기준선을 제공하지만, 깊은 특징, 학습된 표현, 모든 OpenCV API, 또는 모든 분류기를 포괄하지 않는다.
 
-SIFT Bag of Words는 선택적 경로이며 어휘를 훈련 데이터에서만 적합해야 한다. 표준화와 SIFT 어휘 같은 학습 단계는 fold-local하게 처리하지 않으면 누수가 생긴다. 다음 실험에서는 특징 프로필별 ablation, 파라미터 탐색, 보류 데이터셋 검증, 오류 사례의 정성 검토를 추가할 수 있다.
+`SiftBowExtractor`는 독립 구현되어 있지만 not exposed as a BenchmarkService feature profile 이므로 현재 리더보드의 비교 대상이 아니다. future fold-local vocabulary integration 으로 SIFT 어휘를 각 훈련 fold에서만 적합한 뒤에야 공정한 벤치마크 비교에 넣을 수 있다. 표준화와 SIFT 어휘 같은 학습 단계는 fold-local하게 처리하지 않으면 누수가 생긴다. 다음 실험에서는 특징 프로필별 ablation, 파라미터 탐색, 보류 데이터셋 검증, 오류 사례의 정성 검토를 추가할 수 있다.

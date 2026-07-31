@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "dataset_interpretation": "MVTec AD tile/test status folders as six classes",
+  "sample_count": 117,
+  "class_count": 6,
+  "evaluation": {
+    "folds": 5,
+    "seed": 42,
+    "feature_profile": "combined",
+    "classifiers": [
+      "svm",
+      "knn",
+      "rtrees"
+    ]
+  },
+  "top_pipelines": [
+    {
+      "rank": 1,
+      "pipeline": "Original",
+      "classifier": "RTrees",
+      "mean_accuracy": 0.8036813186813185,
+      "mean_macro_f1": 0.7888429406850459,
+      "std_accuracy": 0.007782374342096085,
+      "std_macro_f1": 0.020238787100433434
+    },
+    {
+      "rank": 2,
+      "pipeline": "CLAHE + Bilateral",
+      "classifier": "RTrees",
+      "mean_accuracy": 0.7661355311355311,
+      "mean_macro_f1": 0.7309215031041656,
+      "std_accuracy": 0.058303366061169336,
+      "std_macro_f1": 0.07962286477244042
+    },
+    {
+      "rank": 3,
+      "pipeline": "LAB CLAHE",
+      "classifier": "RTrees",
+      "mean_accuracy": 0.6642710622710623,
+      "mean_macro_f1": 0.5935499065678094,
+      "std_accuracy": 0.06810267403987014,
+      "std_macro_f1": 0.11062587954645454
+    }
+  ],
+  "provenance": {
+    "generation": "Regenerated with opencv-prep benchmark; source images and generated reports are intentionally excluded from version control.",
+    "reproduction": "Use a locally obtained MVTec AD tile/test directory with folds=5, seed=42, pipelines=original,lab-clahe,clahe-bilateral, features=combined, and classifiers=svm,knn,rtrees.",
+    "opencv_version": "4.13.0",
+    "pipeline_config_sha256": "7132278557e5a2ee8b735f786f2dc6945646609fc4a4d6d37d1af95d75dcdb5c",
+    "report_hashes": {
+      "top_pipelines_csv": "3c8eec450102e5f8a7f0105325ae25c01e3579e9f5482fe3b7440739236d1e4b",
+      "leaderboard_csv": "08f9b5fcb306b9a7503754ea60f06cadf8e1bd290449266f5e8b1c8393c303ac",
+      "fold_metrics_csv": "cd389a82850d0bdf07783ea1133f209fb1f5b4659d2bc172767f147f061318ce",
+      "class_metrics_csv": "5bc2056fca9049e06c05ccbfd0d1501800b5dab9cd0e92441d2d9c847005884a",
+      "timings_csv": "53003c9f8f68a80725959b7237d814794efb47cde8147d0ac9c7b80c040e12fd",
+      "run_config_json": "2c55bff5e973dfb11d0130bda206cecf331b768fd132b2884ee623d5365a5f78"
+    },
+    "confusion_matrix_sha256": "e5d9503e5154539e1a676119b58b35fba92e84f8b655c20eb9402281a40e0a32",
+    "display_rounding": "Portfolio tables round mean accuracy and mean Macro F1 to three decimals."
+  }
+}

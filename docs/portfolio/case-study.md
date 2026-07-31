@@ -24,7 +24,7 @@ LAB L-channel CLAHE는 BGR의 세 채널을 각각 평활화하지 않고, LAB�
 
 ## 데이터셋 검증
 
-데이터셋 모드는 원본 또는 선택한 전처리를 각 이미지에 적용한 뒤, OpenCV 고전 특징과 분류기를 같은 재현 조건에서 비교한다. 결합 특징은 HSV/LAB 색상 히스토그램, HOG, Sobel·Laplacian·Gabor 텍스처 통계로 구성한다. 선택적 SIFT Bag of Words 경로도 제공하지만, 실험에서 보고한 조합은 결합 특징이다.
+데이터셋 모드는 원본 또는 선택한 전처리를 각 이미지에 적용한 뒤, OpenCV 고전 특징과 분류기를 같은 재현 조건에서 비교한다. 결합 특징은 HSV/LAB 색상 히스토그램, HOG, Sobel·Laplacian·Gabor 텍스처 통계로 구성한다. `SiftBowExtractor`는 독립적으로 구현되어 있지만 not exposed as a BenchmarkService feature profile 이다. 따라서 현재 보고한 실험 조합은 결합 특징이며, SIFT를 벤치마크에 넣으려면 future fold-local vocabulary integration 이 필요하다.
 
 분류기는 `cv2.ml`의 SVM, kNN, RTrees다. 고정 OpenCV 특징과 `cv2.ml` 분류기를 사용함으로써 특징 추출부터 분류까지 프로젝트의 핵심 경로를 OpenCV 중심으로 유지했다. 모델 선택은 사전 선호가 아니라 같은 fold, 같은 특징 행렬, 같은 순위 기준 아래의 비교 결과에 따른다.
 
@@ -34,7 +34,7 @@ LAB L-channel CLAHE는 BGR의 세 채널을 각각 평활화하지 않고, LAB�
 
 프로젝트는 단일 이미지에서 설명 가능한 Top 3 탐색 순위를 제공하고, 별도 데이터셋에서 Macro F1, accuracy, 클래스별 precision/recall/F1, 혼동행렬, 처리 시간을 보고한다. 보고서는 CSV, JSON, PNG, 실행 설정 hash, OpenCV 버전, seed를 저장하므로 추천과 평가의 근거를 다시 확인할 수 있다.
 
-MVTec tile 사례에서는 원본 파이프라인과 RTrees 조합이 Accuracy 0.804, Macro F1 0.789로 세 전처리 후보 중 가장 높았다. 원본 파이프라인이 이긴 것은 실패가 아니라 유용한 엔지니어링 결론이다. 이 데이터와 특징 조합에서는 원본 질감과 클래스 구분 정보가 이미 충분했으며, 대비 강화나 평활화가 항상 더 나은 표현을 만들지는 않는다는 사실을 보여 준다. 정확한 설정과 세 후보의 수치는 [실험 결과](experiment-results.md)에 기록한다.
+MVTec tile 사례에서는 원본 파이프라인과 RTrees 조합이 Accuracy 0.804, Macro F1 0.789로 세 전처리 후보 중 가장 높았다. 원본 파이프라인이 이긴 것은 실패가 아니라 유용한 엔지니어링 결론이다. 이 데이터와 특징 조합에서는 원본 질감과 클래스 구분 정보가 이미 충분했으며, 대비 강화나 평활화가 항상 더 나은 표현을 만들지는 않는다는 사실을 보여 준다. 정확한 설정과 세 후보의 수치는 [실험 결과](experiment-results.md)와 경로를 포함하지 않는 [재생성 증거 요약](benchmark-evidence.json)에 기록한다.
 
 ## 실패 분석
 

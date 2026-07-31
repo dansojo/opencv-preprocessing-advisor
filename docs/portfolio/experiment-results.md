@@ -2,7 +2,7 @@
 
 ## 실험 범위와 데이터 해석
 
-이 사례는 로컬 MVTec AD `tile/test`의 하위 상태 폴더를 클래스 폴더 데이터셋으로 해석한 분류 실험이다. `crack`, `glue_strip`, `good`, `gray_stroke`, `oil`, `rough`을 6개 클래스로 두었고 총 117 images를 사용했다. 이상 영역 GT mask, anomaly localization, MVTec의 공식 평가 프로토콜은 사용하지 않았다. 따라서 아래 수치는 not an official MVTec anomaly-detection metric 이다.
+이 사례는 로컬 MVTec AD `tile/test`의 하위 상태 폴더를 클래스 폴더 데이터셋으로 해석한 분류 실험이다. `crack`, `glue_strip`, `good`, `gray_stroke`, `oil`, `rough`을 6개 클래스로 두었고 총 117 images를 사용했다. 이상 영역 GT mask, anomaly localization, MVTec의 공식 평가 프로토콜은 사용하지 않았다. 따라서 아래 수치는 not an official MVTec anomaly-detection metric 이다. 정확한 원시 평균과 생성 보고서 hash는 경로를 포함하지 않는 [재생성 증거 요약](benchmark-evidence.json)에 남긴다.
 
 ## 정확한 평가 프로토콜
 
