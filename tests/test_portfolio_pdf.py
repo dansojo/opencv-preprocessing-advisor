@@ -3,13 +3,15 @@
 import shutil
 import subprocess
 import time
+from io import BytesIO
 from pathlib import Path
 
 import pdfplumber
 import pytest
 from pypdf import PdfReader
+from reportlab.pdfgen.canvas import Canvas
 
-from scripts.build_portfolio_pdf import build_pdf, load_portfolio_data
+from scripts.build_portfolio_pdf import MIN_PDF_TEXT_SIZE, _text, build_pdf, load_portfolio_data
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 EMBEDDED_KOREAN_FONT_NAMES = ("NotoSansKR",)
@@ -174,3 +176,10 @@ def test_pdf_uses_committed_open_font_and_representative_streamlit_capture() -> 
     assert font.stat().st_size > 1_000_000
     assert "SIL OPEN FONT LICENSE" in license_file.read_text(encoding="utf-8").upper()
     assert screenshot.read_bytes().startswith(b"\x89PNG")
+
+
+def test_pdf_text_helper_rejects_sizes_below_the_readability_floor() -> None:
+    canvas = Canvas(BytesIO())
+
+    with pytest.raises(ValueError, match="at least 9 point"):
+        _text(canvas, "too small", 0, 0, MIN_PDF_TEXT_SIZE - 0.1)

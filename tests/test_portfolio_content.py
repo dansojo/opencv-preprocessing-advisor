@@ -378,8 +378,11 @@ def test_sift_scope_is_truthful_about_current_benchmark_service_integration():
 
     for content in (case_study, limitations):
         assert "SiftBowExtractor" in content
-        assert "not exposed as a BenchmarkService feature profile" in content
-        assert "future fold-local vocabulary integration" in content
+        assert "BenchmarkService" in content
+        assert "특징 프로필" in content
+        assert "향후 fold별 어휘 학습 통합" in content
+        assert "not exposed as a BenchmarkService feature profile" not in content
+        assert "future fold-local vocabulary integration" not in content
 
 
 def test_limitations_distinguishes_heuristic_dataset_gt_and_feature_limits():
@@ -388,7 +391,8 @@ def test_limitations_distinguishes_heuristic_dataset_gt_and_feature_limits():
     assert limitations.is_file()
     content = limitations.read_text(encoding="utf-8")
     assert all(f"## {heading}" in content for heading in REQUIRED_LIMITATION_HEADINGS)
-    assert "not classification accuracy" in content
+    assert "분류 정확도를 뜻하지 않는다" in content
+    assert "not classification accuracy" not in content
 
 
 def test_korean_readme_is_a_visual_evidence_driven_portfolio_entrypoint():

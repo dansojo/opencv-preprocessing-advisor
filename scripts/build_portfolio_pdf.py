@@ -30,6 +30,7 @@ LINE = HexColor("#D7E3EC")
 FONT_NAME = "PortfolioKorean"
 FONT_BOLD = FONT_NAME
 COMMITTED_FONT_NAME = "NotoSansKR-Regular.ttf"
+MIN_PDF_TEXT_SIZE = 9
 
 
 @dataclass(frozen=True)
@@ -88,7 +89,7 @@ def load_portfolio_data(assets_dir: Path) -> PortfolioData:
         "limitations.md": (
             "## 휴리스틱 추천의 한계",
             "## GT와 MVTec 공식 평가의 부재",
-            "not classification accuracy",
+            "분류 정확도를 뜻하지 않는다",
         ),
         "evidence-map.md": (
             "# OpenCV Portfolio Evidence Map",
@@ -231,6 +232,8 @@ def _text(
     color: HexColor = INK,
     bold: bool = False,
 ) -> None:
+    if size < MIN_PDF_TEXT_SIZE:
+        raise ValueError(f"PDF text must be at least {MIN_PDF_TEXT_SIZE} point: {value}")
     canvas.setFillColor(color)
     canvas.setFont(FONT_BOLD if bold else FONT_NAME, size)
     canvas.drawString(x, y, value)
@@ -520,14 +523,14 @@ def _page_four(canvas: Canvas, assets: Path) -> None:
         ],
         547,
         247,
-        8.5,
+        9,
         16,
         NAVY,
     )
     _rect(canvas, 531, 113, 276, 72, NAVY)
     _text(canvas, "재현 경로", 547, 158, 10, HexColor("#A7E8F4"), bold=True)
     _text(canvas, "data/samples/synthetic-tile.png", 547, 138, 9, white, bold=True)
-    _text(canvas, "제3자 데이터·개인 이미지 없이 재실행", 547, 122, 8.5, HexColor("#D5ECF5"))
+    _text(canvas, "제3자 데이터·개인 이미지 없이 재실행", 547, 122, 9, HexColor("#D5ECF5"))
 
 
 def _page_five(canvas: Canvas, assets: Path, data: PortfolioData) -> None:
@@ -620,12 +623,12 @@ def _page_six(canvas: Canvas) -> None:
         _text(canvas, heading, x + 16, 378, 15, NAVY, bold=True)
         for index, item in enumerate(bullets):
             _bullet(canvas, x + 16, 335 - index * 38, item, ORANGE if heading == "한계" else CYAN)
-    _rect(canvas, MARGIN, 104, 764, 99, NAVY)
+    _rect(canvas, MARGIN, 90, 764, 113, NAVY)
     _text(
         canvas,
         "Repository · 실행 · 비공개 Notion",
         MARGIN + 18,
-        178,
+        180,
         10,
         HexColor("#A7E8F4"),
         bold=True,
@@ -634,7 +637,7 @@ def _page_six(canvas: Canvas) -> None:
         canvas,
         "https://github.com/dansojo/opencv-preprocessing-advisor",
         MARGIN + 18,
-        157,
+        159,
         10,
         white,
         bold=True,
@@ -643,23 +646,31 @@ def _page_six(canvas: Canvas) -> None:
         canvas,
         "streamlit run app.py  |  합성 샘플: data/samples/synthetic-tile.png",
         MARGIN + 18,
-        137,
+        138,
         9,
         HexColor("#D5ECF5"),
     )
     _text(
         canvas,
-        "Notion (verified private): https://app.notion.com/p/3aed0dc3cc1d81c0977fd982867f94e1",
+        "Notion (verified private):",
         MARGIN + 18,
-        119,
-        8.5,
+        117,
+        9,
+        HexColor("#D5ECF5"),
+    )
+    _text(
+        canvas,
+        "https://app.notion.com/p/3aed0dc3cc1d81c0977fd982867f94e1",
+        MARGIN + 18,
+        100,
+        9,
         HexColor("#D5ECF5"),
     )
     _text(
         canvas,
         "포트폴리오는 구현 가능한 주장과 검증 가능한 한계를 함께 제시한다.",
         MARGIN,
-        76,
+        64,
         11,
         CYAN,
         bold=True,

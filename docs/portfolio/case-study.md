@@ -24,7 +24,7 @@ LAB L-channel CLAHE는 BGR의 세 채널을 각각 평활화하지 않고, LAB�
 
 ## 데이터셋 검증
 
-데이터셋 모드는 원본 또는 선택한 전처리를 각 이미지에 적용한 뒤, OpenCV 고전 특징과 분류기를 같은 재현 조건에서 비교한다. 결합 특징은 HSV/LAB 색상 히스토그램, HOG, Sobel·Laplacian·Gabor 텍스처 통계로 구성한다. `SiftBowExtractor`는 독립적으로 구현되어 있지만 not exposed as a BenchmarkService feature profile 이다. 즉, 현재 `BenchmarkService`가 선택할 수 있는 특징 프로필로 연결되어 있지 않다. 따라서 현재 보고한 실험 조합은 결합 특징이며, SIFT를 벤치마크에 넣으려면 future fold-local vocabulary integration (향후 각 학습 fold 안에서만 어휘를 학습해 연결하는 작업)이 필요하다.
+데이터셋 모드는 원본 또는 선택한 전처리를 각 이미지에 적용한 뒤, OpenCV 고전 특징과 분류기를 같은 재현 조건에서 비교한다. 결합 특징은 HSV/LAB 색상 히스토그램, HOG, Sobel·Laplacian·Gabor 텍스처 통계로 구성한다. `SiftBowExtractor`는 독립적으로 구현되어 있지만 현재 `BenchmarkService`의 특징 프로필로 제공되지 않는다. 따라서 현재 보고한 실험 조합은 결합 특징이며, SIFT를 벤치마크에 넣으려면 각 학습 fold 안에서만 어휘를 학습하는 향후 fold별 어휘 학습 통합이 필요하다.
 
 분류기는 `cv2.ml`의 SVM, kNN, RTrees다. 고정 OpenCV 특징과 `cv2.ml` 분류기를 사용함으로써 특징 추출부터 분류까지 프로젝트의 핵심 경로를 OpenCV 중심으로 유지했다. 모델 선택은 사전 선호가 아니라 같은 fold, 같은 특징 행렬, 같은 순위 기준 아래의 비교 결과에 따른다.
 

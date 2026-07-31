@@ -52,7 +52,7 @@ LAB L-channel CLAHE는 BGR 각 채널을 독립적으로 평활화하지 않고 
 
 레이블 데이터셋에서는 `combined` 특징 프로필을 사용한다. 구성은 HSV/LAB 색상 히스토그램, HOG, Sobel/Laplacian/Gabor 텍스처 통계이며 [features.py](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/src/opencv_preprocessing_advisor/features.py)와 [특징 테스트](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/tests/test_features.py)에 구현돼 있다.
 
-`SiftBowExtractor`도 독립 구현되어 있지만 **not exposed as a BenchmarkService feature profile** 이다. 즉, 현재 `BenchmarkService`에서 선택 가능한 특징 프로필로 연결되어 있지 않다. 따라서 현재 리더보드의 수치에 SIFT 결과를 포함하지 않는다. SIFT BoW를 공정하게 추가하려면 각 훈련 fold에만 vocabulary를 적합하는 **future fold-local vocabulary integration**(향후 fold별 어휘 학습 연결)이 필요하다.
+`SiftBowExtractor`도 독립 구현되어 있지만 현재 `BenchmarkService`의 특징 프로필로 제공되지 않는다. 따라서 현재 리더보드의 수치에 SIFT 결과를 포함하지 않는다. SIFT BoW를 공정하게 추가하려면 각 훈련 fold에만 어휘를 적합하는 **향후 fold별 어휘 학습 통합**이 필요하다.
 
 ## 분류기
 
