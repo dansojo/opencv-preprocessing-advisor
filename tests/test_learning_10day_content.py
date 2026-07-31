@@ -25,6 +25,9 @@ REFERENCE_TITLES = {
     "exercises.md": "실습 과제와 해설",
     "progress-checklist.md": "진도 및 설명 능력 체크리스트",
 }
+TECH_Q = re.compile(r"(?m)^## TQ(\d+): .+$")
+INTERVIEW_Q = re.compile(r"(?m)^## IQ(\d+): .+$")
+EXERCISE = re.compile(r"(?m)^## EX(\d+): .+$")
 DAY_SECTIONS = (
     "오늘 답해야 할 핵심 질문",
     "개념과 원리",
@@ -68,6 +71,62 @@ def test_ten_day_learning_hub_has_exact_topology_and_ordered_course_index() -> N
         assert (LEARNING_10DAY / filename).read_text(encoding="utf-8").splitlines()[
             0
         ] == f"# {title}"
+
+
+def _assert_sequential_numbers(matches: list[str]) -> None:
+    assert [int(number) for number in matches] == list(range(1, len(matches) + 1))
+
+
+def _assert_blocks_have_required_headings(
+    text: str, pattern: re.Pattern[str], headings: tuple[str, ...]
+) -> None:
+    matches = list(pattern.finditer(text))
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        block = text[match.start() : end]
+        assert all(f"### {heading}" in block for heading in headings)
+
+
+def test_independent_references_are_numbered_complete_and_project_grounded() -> None:
+    """Reference pages remain useful outside the day-by-day course."""
+    technical_text = (LEARNING_10DAY / "technical-qa.md").read_text(encoding="utf-8")
+    interview_text = (LEARNING_10DAY / "interview-qa.md").read_text(encoding="utf-8")
+    exercise_text = (LEARNING_10DAY / "exercises.md").read_text(encoding="utf-8")
+    progress_text = (LEARNING_10DAY / "progress-checklist.md").read_text(encoding="utf-8")
+
+    technical_numbers = TECH_Q.findall(technical_text)
+    interview_numbers = INTERVIEW_Q.findall(interview_text)
+    exercise_numbers = EXERCISE.findall(exercise_text)
+    assert len(technical_numbers) >= 50
+    assert len(interview_numbers) >= 35
+    assert len(exercise_numbers) >= 30
+    _assert_sequential_numbers(technical_numbers)
+    _assert_sequential_numbers(interview_numbers)
+    _assert_sequential_numbers(exercise_numbers)
+
+    _assert_blocks_have_required_headings(
+        technical_text,
+        TECH_Q,
+        ("한 문장 답", "상세 설명", "프로젝트 근거", "주의/실패"),
+    )
+    _assert_blocks_have_required_headings(
+        interview_text,
+        INTERVIEW_Q,
+        ("30초 답변", "2분 심화 답변", "근거 코드·결과", "추가 질문"),
+    )
+    _assert_blocks_have_required_headings(
+        exercise_text,
+        EXERCISE,
+        ("난이도", "문제", "입력", "요구 산출물", "힌트", "해설", "평가 기준"),
+    )
+
+    assert all(f"[Day {day}](day-{day:02d}.md)" in progress_text for day in range(1, 11))
+    assert "4단계" in progress_text
+    assert "시간 제한 없음" in progress_text
+    assert "증거 링크" in progress_text
+    assert "다시 학습" in progress_text
+    assert "single-image" not in technical_text.lower()
+    assert "not official" in interview_text
 
 
 def test_learning_hub_validator_enforces_the_scaffold_contract(tmp_path: Path) -> None:
