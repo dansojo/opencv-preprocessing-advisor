@@ -231,9 +231,13 @@ def test_claim_validator_checks_reference_links_autolinks_and_fenced_headings(tm
                 "[visible reference][visible]",
                 "[missing reference][missing-target]",
                 "[fenced heading][hidden-heading]",
+                "[missing shortcut]",
+                "![missing image][missing-image]",
                 "[visible]: docs/anchors.md#visible-heading",
                 "[missing-target]: docs/reference-missing.md",
                 "[hidden-heading]: docs/anchors.md#hidden-heading",
+                "[missing shortcut]: docs/shortcut-missing.md",
+                "[missing-image]: docs/image-missing.png",
                 "<https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/docs/autolink-missing.md>",
             )
         ),
@@ -246,6 +250,8 @@ def test_claim_validator_checks_reference_links_autolinks_and_fenced_headings(tm
         "README.md: Markdown link target does not exist: docs/reference-missing.md.",
         "README.md: Markdown anchor does not exist: docs/anchors.md#hidden-heading.",
         "README.md: Markdown link target does not exist: docs/autolink-missing.md.",
+        "README.md: Markdown link target does not exist: docs/shortcut-missing.md.",
+        "README.md: Markdown link target does not exist: docs/image-missing.png.",
     }
     assert expected_errors <= set(errors)
 

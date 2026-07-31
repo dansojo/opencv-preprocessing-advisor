@@ -54,6 +54,8 @@ MARKDOWN_REFERENCE_DEFINITION_PATTERN = re.compile(
     r"^[ \t]{0,3}\[(?P<label>[^\]]+)\]:[ \t]*(?P<target><[^>]+>|\S+)"
 )
 MARKDOWN_REFERENCE_LINK_PATTERN = re.compile(r"(?<!\!)\[(?P<text>[^\]]+)\]\[(?P<label>[^\]]*)\]")
+MARKDOWN_SHORTCUT_REFERENCE_PATTERN = re.compile(r"(?<![!\[])\[(?P<label>[^\]]+)\](?![\[(])")
+MARKDOWN_IMAGE_REFERENCE_PATTERN = re.compile(r"!\[(?P<alt>[^\]]*)\]\[(?P<label>[^\]]*)\]")
 MARKDOWN_AUTOLINK_PATTERN = re.compile(r"<(?P<target>(?:https?://|mailto:)[^\s>]+)>")
 WINDOWS_USER_PATH_PATTERN = re.compile(r"(?i)C:\\Users\\(?P<user>[A-Za-z0-9][A-Za-z0-9._-]*)")
 SAFETY_PATTERNS = (
@@ -204,6 +206,13 @@ def _markdown_link_targets(content: str) -> list[str]:
         )
         for match in MARKDOWN_REFERENCE_LINK_PATTERN.finditer(line):
             label = match["label"] or match["text"]
+            if target := references.get(_normalize_reference_label(label)):
+                targets.append(target)
+        for match in MARKDOWN_SHORTCUT_REFERENCE_PATTERN.finditer(line):
+            if target := references.get(_normalize_reference_label(match["label"])):
+                targets.append(target)
+        for match in MARKDOWN_IMAGE_REFERENCE_PATTERN.finditer(line):
+            label = match["label"] or match["alt"]
             if target := references.get(_normalize_reference_label(label)):
                 targets.append(target)
         targets.extend(match["target"] for match in MARKDOWN_AUTOLINK_PATTERN.finditer(line))
