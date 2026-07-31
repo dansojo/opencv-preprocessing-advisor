@@ -167,6 +167,7 @@ def test_claim_validator_rejects_public_safety_markers_and_broken_markdown(tmp_p
             "oauth = " + "gh" + "o_" + "a" * 36,
             "pat = " + "github" + "_pat_" + "a" * 24,
             "api_key = " + "s" + "k-" + "a" * 24,
+            "project_api_key = " + "s" + "k-proj-" + "a" * 24,
             "dataset = " + "C:" + "\\datasets\\mvtec" + "_anomaly_detection\\tile",
             "[temporary render](" + "tmp" + "/pdfs/rendered/page-1.png)",
             "NOTION_CASE_STUDY_URL" + ": pending",
@@ -190,6 +191,28 @@ def test_claim_validator_rejects_public_safety_markers_and_broken_markdown(tmp_p
         "README.md: Markdown anchor does not exist: docs/portfolio/case-study.md#does-not-exist.",
     }
     assert expected_errors <= set(errors)
+
+
+def test_claim_validator_rejects_hyphenated_openai_project_api_keys(tmp_path):
+    copied_root = tmp_path / "repository"
+    copytree(
+        PROJECT_ROOT,
+        copied_root,
+        ignore=ignore_patterns(".git", ".pytest_cache", ".ruff_cache", ".superpowers"),
+    )
+    readme = copied_root / "README.md"
+    readme.write_text(
+        readme.read_text(encoding="utf-8")
+        + "\nproject_api_key = "
+        + "s"
+        + "k-proj-"
+        + "a" * 24,
+        encoding="utf-8",
+    )
+
+    errors = validate_claims(copied_root)
+
+    assert "README.md: contains an API key marker." in errors
 
 
 def test_claim_validator_scans_tracked_extensionless_environment_files(tmp_path):

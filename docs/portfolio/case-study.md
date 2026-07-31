@@ -24,11 +24,11 @@ LAB L-channel CLAHE는 BGR의 세 채널을 각각 평활화하지 않고, LAB�
 
 ## 데이터셋 검증
 
-데이터셋 모드는 원본 또는 선택한 전처리를 각 이미지에 적용한 뒤, OpenCV 고전 특징과 분류기를 같은 재현 조건에서 비교한다. 결합 특징은 HSV/LAB 색상 히스토그램, HOG, Sobel·Laplacian·Gabor 텍스처 통계로 구성한다. `SiftBowExtractor`는 독립적으로 구현되어 있지만 not exposed as a BenchmarkService feature profile 이다. 따라서 현재 보고한 실험 조합은 결합 특징이며, SIFT를 벤치마크에 넣으려면 future fold-local vocabulary integration 이 필요하다.
+데이터셋 모드는 원본 또는 선택한 전처리를 각 이미지에 적용한 뒤, OpenCV 고전 특징과 분류기를 같은 재현 조건에서 비교한다. 결합 특징은 HSV/LAB 색상 히스토그램, HOG, Sobel·Laplacian·Gabor 텍스처 통계로 구성한다. `SiftBowExtractor`는 독립적으로 구현되어 있지만 not exposed as a BenchmarkService feature profile 이다. 즉, 현재 `BenchmarkService`가 선택할 수 있는 특징 프로필로 연결되어 있지 않다. 따라서 현재 보고한 실험 조합은 결합 특징이며, SIFT를 벤치마크에 넣으려면 future fold-local vocabulary integration (향후 각 학습 fold 안에서만 어휘를 학습해 연결하는 작업)이 필요하다.
 
 분류기는 `cv2.ml`의 SVM, kNN, RTrees다. 고정 OpenCV 특징과 `cv2.ml` 분류기를 사용함으로써 특징 추출부터 분류까지 프로젝트의 핵심 경로를 OpenCV 중심으로 유지했다. 모델 선택은 사전 선호가 아니라 같은 fold, 같은 특징 행렬, 같은 순위 기준 아래의 비교 결과에 따른다.
 
-누수를 막기 위해 fold-local scaling을 사용한다. 각 fold에서 Standardizer는 훈련 인덱스의 특징만으로 평균과 표준편차를 적합하고, 그 값으로 훈련/테스트 특징을 각각 변환한다. SIFT 어휘처럼 학습되는 특징 표현도 훈련 fold에만 적합해야 한다. 이 경계가 없으면 테스트 데이터의 분포가 훈련 과정에 섞여 성능 추정이 낙관적으로 변한다.
+누수를 막기 위해 fold-local scaling을 사용한다. 이는 각 fold의 훈련 데이터에서만 스케일링 기준을 맞춘다는 뜻이다. 각 fold에서 Standardizer는 훈련 인덱스의 특징만으로 평균과 표준편차를 적합하고, 그 값으로 훈련/테스트 특징을 각각 변환한다. SIFT 어휘처럼 학습되는 특징 표현도 훈련 fold에만 적합해야 한다. 이 경계가 없으면 테스트 데이터의 분포가 훈련 과정에 섞여 성능 추정이 낙관적으로 변한다.
 
 ## 종합 결과
 

@@ -52,7 +52,7 @@ LAB L-channel CLAHE는 BGR 각 채널을 독립적으로 평활화하지 않고 
 
 레이블 데이터셋에서는 `combined` 특징 프로필을 사용한다. 구성은 HSV/LAB 색상 히스토그램, HOG, Sobel/Laplacian/Gabor 텍스처 통계이며 [features.py](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/src/opencv_preprocessing_advisor/features.py)와 [특징 테스트](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/tests/test_features.py)에 구현돼 있다.
 
-`SiftBowExtractor`도 독립 구현되어 있지만 **not exposed as a BenchmarkService feature profile** 이다. 따라서 현재 리더보드의 수치에 SIFT 결과를 포함하지 않는다. SIFT BoW를 공정하게 추가하려면 각 훈련 fold에만 vocabulary를 적합하는 **future fold-local vocabulary integration**이 필요하다.
+`SiftBowExtractor`도 독립 구현되어 있지만 **not exposed as a BenchmarkService feature profile** 이다. 즉, 현재 `BenchmarkService`에서 선택 가능한 특징 프로필로 연결되어 있지 않다. 따라서 현재 리더보드의 수치에 SIFT 결과를 포함하지 않는다. SIFT BoW를 공정하게 추가하려면 각 훈련 fold에만 vocabulary를 적합하는 **future fold-local vocabulary integration**(향후 fold별 어휘 학습 연결)이 필요하다.
 
 ## 분류기
 
@@ -62,7 +62,7 @@ LAB L-channel CLAHE는 BGR 각 채널을 독립적으로 평활화하지 않고 
 
 ## 누수 방지와 재현성
 
-[datasets.py](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/src/opencv_preprocessing_advisor/datasets.py)는 클래스 폴더를 결정적으로 탐색하고, seed 42로 stratified fold를 만든다. [evaluation.py](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/src/opencv_preprocessing_advisor/evaluation.py)는 각 fold의 훈련 특징에만 표준화기를 적합하고 테스트 특징에는 변환만 적용하는 **fold-local scaling**을 수행한다. 이 경계가 없으면 테스트 분포가 훈련 통계에 섞여 성능이 낙관적으로 보이는 누수가 생긴다.
+[datasets.py](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/src/opencv_preprocessing_advisor/datasets.py)는 클래스 폴더를 결정적으로 탐색하고, seed 42로 stratified fold를 만든다. [evaluation.py](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/src/opencv_preprocessing_advisor/evaluation.py)는 각 fold의 훈련 특징에만 표준화기를 적합하고 테스트 특징에는 변환만 적용하는 **fold-local scaling**을 수행한다. 이는 fold마다 훈련 데이터만으로 스케일 기준을 정한다는 뜻이다. 이 경계가 없으면 테스트 분포가 훈련 통계에 섞여 성능이 낙관적으로 보이는 누수가 생긴다.
 
 평가 코드와 [평가 테스트](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/tests/test_evaluation.py)는 같은 split에서 조합을 비교하고, 생성 보고서는 순위표·fold 지표·클래스 지표·혼동행렬·시간·실행 설정을 남긴다. 이 경로와 [benchmark-evidence.json](https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/docs/portfolio/benchmark-evidence.json)의 hash 요약은 소스 이미지나 로컬 절대 경로를 커밋하지 않고도 재생성 근거를 제공한다.
 

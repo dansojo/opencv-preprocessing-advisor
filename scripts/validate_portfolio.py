@@ -68,7 +68,10 @@ SAFETY_PATTERNS = (
         "a GitHub personal-access-token marker",
         re.compile(r"\bghp_[A-Za-z0-9]{20,}\b"),
     ),
-    ("an API key marker", re.compile(r"\bsk-[A-Za-z0-9]{20,}\b")),
+    (
+        "an API key marker",
+        re.compile(r"\bsk-(?:[A-Za-z0-9]{20,}|proj-[A-Za-z0-9_-]{20,})\b"),
+    ),
     ("an environment-file reference", re.compile(r"(?<![\w.\\])\.env(?![\w.-])")),
     (
         "a local MVTec dataset path",

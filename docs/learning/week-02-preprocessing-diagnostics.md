@@ -48,7 +48,7 @@ min-max 정규화는 범위를 늘리고, 감마는 중간 밝기 분포를 비�
 CLAHE의 clip limit와 tile grid가 과도한 대비 증폭을 어떻게 제어하는지 말한다.
 
 ### 개념
-CLAHE는 국소 영역의 히스토그램을 다루며, clip limit는 특정 구간의 과도한 증폭을 제한한다. grid가 작아지면 더 국소적인 결과가 될 수 있어 부작용도 비교해야 한다.
+CLAHE는 국소 영역의 히스토그램을 다루며, clip limit는 특정 구간의 과도한 증폭을 제한한다. `tileGridSize`의 숫자가 커질수록 이미지를 더 많은 구획으로 나누므로 각 타일은 더 작아지고 결과도 더 국소적일 수 있어 부작용도 비교해야 한다.
 
 ### 코드 연결
 [apply_lab_clahe](../../src/opencv_preprocessing_advisor/transforms.py)와 [pipeline 설정](../../src/opencv_preprocessing_advisor/config/pipelines.yaml)을 읽는다.
