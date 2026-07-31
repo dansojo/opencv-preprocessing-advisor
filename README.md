@@ -105,6 +105,6 @@ opencv-prep benchmark --dataset "C:\path\to\class-folder-dataset" --folds 5 --pi
 
 ### Notion 케이스 스터디
 
-<!-- NOTION_CASE_STUDY_URL: pending -->
+- [상세 Notion 케이스 스터디](https://app.notion.com/p/3aed0dc3cc1d81c0977fd982867f94e1) — 프로젝트 배경, 설계 판단, MVTec 실험, 실패 해석, 한계와 다음 실험을 12개 섹션으로 정리한 공개 문서입니다.
 
-Notion 공개본은 동일한 정본 자료를 바탕으로 최종 검토 후 연결합니다. 현재는 위 저장소 문서가 검증 가능한 원본입니다.
+Notion 공개본은 위 저장소 정본과 동일한 지표·한계를 사용하며, 구현 근거는 GitHub `main` 소스 링크로 추적할 수 있습니다.

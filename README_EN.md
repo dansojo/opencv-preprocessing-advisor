@@ -97,6 +97,6 @@ The project does not claim every OpenCV API, deep learning, or official MVTec an
 
 ### Notion case study
 
-<!-- NOTION_CASE_STUDY_URL: pending -->
+- [Detailed Notion case study](https://app.notion.com/p/3aed0dc3cc1d81c0977fd982867f94e1) — a 12-section public walkthrough of the project background, design decisions, MVTec experiment, failure interpretation, limitations, and next experiments.
 
-The verified repository documents above are the current source of record. A matching public Notion case study will be linked after final review.
+The Notion page uses the same metrics and limitations as the repository sources above, with implementation evidence traced to GitHub `main`.

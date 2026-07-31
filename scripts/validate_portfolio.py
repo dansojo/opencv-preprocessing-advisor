@@ -14,7 +14,9 @@ EXPECTED_METRICS = {
 
 EVIDENCE_MAP = Path("docs/portfolio/evidence-map.md")
 README = Path("README.md")
+README_EN = Path("README_EN.md")
 PYPROJECT = Path("pyproject.toml")
+NOTION_CASE_STUDY_URL = "https://app.notion.com/p/3aed0dc3cc1d81c0977fd982867f94e1"
 REQUIRED_UI_PAGES = {
     "dataset_benchmark.py",
     "image_advisor.py",
@@ -80,6 +82,18 @@ def validate_claims(repo_root: Path) -> list[str]:
         for metric_name, expected_value in EXPECTED_METRICS.items():
             if readme_metrics.get(metric_name) != expected_value:
                 errors.append(f"README metric {metric_name} must use {expected_value}.")
+
+    for notion_readme in (README, README_EN):
+        readme_path = repo_root / notion_readme
+        if not readme_path.is_file():
+            errors.append(f"Missing README: {notion_readme}")
+            continue
+        readme_text = readme_path.read_text(encoding="utf-8")
+        if (
+            NOTION_CASE_STUDY_URL not in readme_text
+            or "NOTION_CASE_STUDY_URL: pending" in readme_text
+        ):
+            errors.append(f"{notion_readme} must link the verified Notion case study.")
 
     pyproject = repo_root / PYPROJECT
     required_dependency = '"opencv-python>=4.10,<5"'

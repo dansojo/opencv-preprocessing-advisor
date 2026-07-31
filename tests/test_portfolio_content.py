@@ -7,6 +7,7 @@ from shutil import copytree, ignore_patterns
 from scripts.validate_portfolio import validate_claims
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+NOTION_CASE_STUDY_URL = "https://app.notion.com/p/3aed0dc3cc1d81c0977fd982867f94e1"
 
 PORTFOLIO_ROOT = PROJECT_ROOT / "docs" / "portfolio"
 BENCHMARK_EVIDENCE = PORTFOLIO_ROOT / "benchmark-evidence.json"
@@ -115,6 +116,27 @@ def test_claim_validator_rejects_incorrect_benchmark_accuracy(tmp_path):
     assert "README metric accuracy must use 0.804." in errors
 
 
+def test_claim_validator_rejects_missing_verified_notion_links(tmp_path):
+    copied_root = tmp_path / "repository"
+    copytree(
+        PROJECT_ROOT,
+        copied_root,
+        ignore=ignore_patterns(".git", ".pytest_cache", ".ruff_cache", ".superpowers"),
+    )
+    for filename in ("README.md", "README_EN.md"):
+        readme = copied_root / filename
+        content = readme.read_text(encoding="utf-8").replace(
+            NOTION_CASE_STUDY_URL,
+            "NOTION_CASE_STUDY_URL: pending",
+        )
+        readme.write_text(content, encoding="utf-8")
+
+    errors = validate_claims(copied_root)
+
+    assert "README.md must link the verified Notion case study." in errors
+    assert "README_EN.md must link the verified Notion case study." in errors
+
+
 def test_case_study_is_a_complete_canonical_source_document():
     case_study = PORTFOLIO_ROOT / "case-study.md"
 
@@ -218,7 +240,8 @@ def test_korean_readme_is_a_visual_evidence_driven_portfolio_entrypoint():
     assert "## 빠른 시작" in content
     assert "](docs/portfolio/limitations.md)" in content
     assert "](output/pdf/opencv-preprocessing-advisor-portfolio.pdf)" in content
-    assert "NOTION_CASE_STUDY_URL: pending" in content
+    assert f"[상세 Notion 케이스 스터디]({NOTION_CASE_STUDY_URL})" in content
+    assert "NOTION_CASE_STUDY_URL: pending" not in content
 
 
 def test_english_readme_mirrors_the_portfolio_claims_without_new_metrics():
@@ -232,7 +255,8 @@ def test_english_readme_mirrors_the_portfolio_claims_without_new_metrics():
     assert "pytest -q" in content
     assert "](docs/portfolio/limitations.md)" in content
     assert "](output/pdf/opencv-preprocessing-advisor-portfolio.pdf)" in content
-    assert "NOTION_CASE_STUDY_URL: pending" in content
+    assert f"[Detailed Notion case study]({NOTION_CASE_STUDY_URL})" in content
+    assert "NOTION_CASE_STUDY_URL: pending" not in content
 
 
 def test_local_notion_case_study_is_complete_and_traceable():
