@@ -12,7 +12,7 @@ from pypdf import PdfReader
 from scripts.build_portfolio_pdf import build_pdf, load_portfolio_data
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-EMBEDDED_KOREAN_FONT_NAMES = ("MalgunGothic", "NanumGothic")
+EMBEDDED_KOREAN_FONT_NAMES = ("NotoSansKR",)
 
 
 def _copy_portfolio_sources(tmp_path: Path) -> Path:
@@ -85,8 +85,12 @@ def test_build_pdf_creates_six_page_korean_portfolio(tmp_path: Path) -> None:
         "휴리스틱",
         "전처리가 항상 성능을 높이지는 않는다",
         "https://github.com/dansojo/opencv-preprocessing-advisor",
+        "https://app.notion.com/p/3aed0dc3cc1d81c0977fd982867f94e1",
+        "streamlit run app.py",
     ):
         assert required_text in text
+
+    assert "Diagnostics: brightness" in (pdf.pages[3].extract_text() or "")
 
 
 def test_build_pdf_is_byte_deterministic(tmp_path: Path) -> None:
@@ -160,3 +164,13 @@ def test_pdf_is_landscape_a4_and_embeds_korean_font(tmp_path: Path) -> None:
         if any(name in base_font for name in EMBEDDED_KOREAN_FONT_NAMES) and descriptor is not None:
             embedded_korean_font = "/FontFile2" in descriptor.get_object()
     assert embedded_korean_font
+
+
+def test_pdf_uses_committed_open_font_and_representative_streamlit_capture() -> None:
+    font = PROJECT_ROOT / "docs" / "portfolio" / "fonts" / "NotoSansKR-Regular.ttf"
+    license_file = font.with_name("OFL.txt")
+    screenshot = PROJECT_ROOT / "docs" / "portfolio" / "assets" / "streamlit-advisor-synthetic.png"
+
+    assert font.stat().st_size > 1_000_000
+    assert "SIL OPEN FONT LICENSE" in license_file.read_text(encoding="utf-8").upper()
+    assert screenshot.read_bytes().startswith(b"\x89PNG")

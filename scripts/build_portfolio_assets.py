@@ -14,7 +14,7 @@ import numpy as np
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
-from matplotlib.font_manager import fontManager
+from matplotlib.font_manager import FontProperties, fontManager
 from matplotlib.patches import FancyBboxPatch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -27,18 +27,18 @@ from opencv_preprocessing_advisor.services import ImageAdvisorService
 
 PNG_DPI = 160
 PNG_WIDTH_INCHES = 10
+COMMITTED_KOREAN_FONT = PROJECT_ROOT / "docs" / "portfolio" / "fonts" / "NotoSansKR-Regular.ttf"
 
 
 def _configure_font() -> str:
-    """Prefer a Korean-capable font while keeping the assets portable."""
-    available = {font.name for font in fontManager.ttflist}
-    for name in ("Noto Sans CJK KR", "Malgun Gothic", "Noto Sans CJK", "DejaVu Sans"):
-        if name in available:
-            plt.rcParams["font.family"] = name
-            plt.rcParams["axes.unicode_minus"] = False
-            return name
-    plt.rcParams["font.family"] = "DejaVu Sans"
-    return "DejaVu Sans"
+    """Use the committed Noto font so asset bytes do not depend on the host OS."""
+    if not COMMITTED_KOREAN_FONT.is_file():
+        raise FileNotFoundError(f"Missing committed Korean font: {COMMITTED_KOREAN_FONT}")
+    fontManager.addfont(str(COMMITTED_KOREAN_FONT))
+    font_name = FontProperties(fname=str(COMMITTED_KOREAN_FONT)).get_name()
+    plt.rcParams["font.family"] = font_name
+    plt.rcParams["axes.unicode_minus"] = False
+    return font_name
 
 
 def _save(figure: plt.Figure, path: Path) -> Path:
@@ -159,6 +159,17 @@ def _synthetic_tile() -> np.ndarray:
     return cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
 
 
+def build_synthetic_sample(output_path: Path) -> Path:
+    """Write the deterministic, dataset-free tile used in public examples."""
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    success, encoded = cv2.imencode(".png", _synthetic_tile())
+    if not success:
+        raise RuntimeError("Failed to encode the synthetic sample as PNG.")
+    output_path.write_bytes(encoded.tobytes())
+    return output_path
+
+
 def _advice_comparison(path: Path) -> Path:
     image = _synthetic_tile()
     result = ImageAdvisorService().analyze(image, TaskProfile.AUTO)
@@ -204,9 +215,16 @@ def main() -> None:
     parser.add_argument(
         "--output", type=Path, required=True, help="Directory for generated PNG assets"
     )
+    parser.add_argument(
+        "--sample",
+        type=Path,
+        default=PROJECT_ROOT / "data" / "samples" / "synthetic-tile.png",
+        help="Path for the deterministic, dataset-free PNG sample",
+    )
     args = parser.parse_args()
     for name, path in build_assets(args.output).items():
         print(f"{name}: {path}")
+    print(f"synthetic_sample: {build_synthetic_sample(args.sample)}")
 
 
 if __name__ == "__main__":

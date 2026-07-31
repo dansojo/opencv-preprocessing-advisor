@@ -28,7 +28,8 @@ ORANGE_PALE = HexColor("#FFF0E2")
 PANEL = HexColor("#F4F8FB")
 LINE = HexColor("#D7E3EC")
 FONT_NAME = "PortfolioKorean"
-FONT_BOLD = "PortfolioKoreanBold"
+FONT_BOLD = FONT_NAME
+COMMITTED_FONT_NAME = "NotoSansKR-Regular.ttf"
 
 
 @dataclass(frozen=True)
@@ -186,24 +187,16 @@ def load_portfolio_data(assets_dir: Path) -> PortfolioData:
     return data
 
 
-def _register_korean_fonts() -> tuple[str, str]:
-    """Register embedded Korean TrueType fonts and return regular/bold names."""
+def _register_korean_fonts(assets_dir: Path) -> tuple[str, str]:
+    """Register the committed, open-licensed Korean font used by every build."""
     if FONT_NAME in pdfmetrics.getRegisteredFontNames():
         return FONT_NAME, FONT_BOLD
 
-    candidates = (
-        (Path("C:/Windows/Fonts/malgun.ttf"), Path("C:/Windows/Fonts/malgunbd.ttf")),
-        (
-            Path("/usr/share/fonts/truetype/nanum/NanumGothic.ttf"),
-            Path("/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf"),
-        ),
-    )
-    for regular, bold in candidates:
-        if regular.is_file() and bold.is_file():
-            pdfmetrics.registerFont(TTFont(FONT_NAME, str(regular)))
-            pdfmetrics.registerFont(TTFont(FONT_BOLD, str(bold)))
-            return FONT_NAME, FONT_BOLD
-    raise FileNotFoundError("A Korean TrueType font (Malgun Gothic or Nanum Gothic) is required.")
+    font_path = Path(assets_dir).parent / "fonts" / COMMITTED_FONT_NAME
+    if not font_path.is_file():
+        raise FileNotFoundError(f"Missing committed Korean font: {font_path}")
+    pdfmetrics.registerFont(TTFont(FONT_NAME, str(font_path)))
+    return FONT_NAME, FONT_BOLD
 
 
 def _draw_image(
@@ -506,50 +499,35 @@ def _page_four(canvas: Canvas, assets: Path) -> None:
         "UI가 아닌 서비스와 증거가 중심인 구조",
         "Streamlit과 CLI는 같은 진단, 파이프라인, 평가, 보고 서비스 계층을 호출한다",
     )
-    _rect(canvas, MARGIN, 150, 405, 269, PANEL)
-    _draw_image(canvas, assets / "architecture.png", MARGIN + 12, 174, 381, 215)
-    _text(
-        canvas,
-        "서비스 계층을 분리해 UI 밖에서도 테스트와 재생성이 가능하다.",
-        MARGIN + 16,
-        164,
-        9,
-        MUTED,
-    )
-    _text(canvas, "추천이 설명을 남기는 방식", 483, 407, 16, NAVY, bold=True)
+    _rect(canvas, MARGIN, 154, 476, 260, PANEL)
+    _draw_image(canvas, assets / "streamlit-advisor-synthetic.png", MARGIN + 8, 164, 460, 240)
+    _text(canvas, "합성 타일 · 자동 분류 · 실제 Streamlit 실행 캡처", MARGIN + 12, 158, 9, MUTED)
+
+    _rect(canvas, 531, 319, 276, 100, CYAN_PALE)
+    _text(canvas, "대표 진단값: #1 CLAHE + Bilateral", 547, 393, 11, NAVY, bold=True)
+    _text(canvas, "Diagnostics: brightness 116.40 → 119.97", 547, 369, 9, INK)
+    _text(canvas, "global contrast 5.68 → 9.34", 547, 349, 9, INK)
+    _text(canvas, "entropy 4.51 → 5.23 · noise 0.35 → 0.23", 547, 329, 9, INK)
+
+    _rect(canvas, 531, 209, 276, 89, ORANGE_PALE)
+    _text(canvas, "값을 결과로 과장하지 않는다", 547, 270, 11, ORANGE, bold=True)
     _lines(
         canvas,
         [
-            "1. 이미지 조건을 진단한다.",
-            "2. YAML 파이프라인 후보를 적용한다.",
-            "3. 전후 진단값, 점수 기여, 경고를 비교한다.",
+            "휴리스틱 적합도는 분류 정확도나 성공 확률이 아니다.",
+            "원본·후보의 수치 변화, 점수 기여, 경고를 함께 제시한다.",
+            "후보의 우열은 목적 데이터에서 별도로 교차 검증한다.",
         ],
-        483,
-        378,
-        10,
-        23,
+        547,
+        247,
+        8.5,
+        16,
+        NAVY,
     )
-    recommendation = [
-        ("01", "LAB L-channel CLAHE", "색상 관계를 덜 교란하며 국소 대비를 탐색"),
-        ("02", "Median / Bilateral", "노이즈 가정을 다르게 둔 필터 후보 비교"),
-        ("03", "Warnings", "클리핑, 과도한 에지, 평활화, 색 손실을 노출"),
-    ]
-    for index, (number, name, detail) in enumerate(recommendation):
-        y = 279 - index * 57
-        _rect(canvas, 483, y, 324, 47, CYAN_PALE if index != 1 else ORANGE_PALE)
-        _text(canvas, number, 496, y + 17, 10, CYAN if index != 1 else ORANGE, bold=True)
-        _text(canvas, name, 532, y + 23, 10, NAVY, bold=True)
-        _text(canvas, detail, 532, y + 10, 9, MUTED)
-    _rect(canvas, 483, 83, 324, 61, NAVY)
-    _text(canvas, "점수만 보여 주지 않는다.", 499, 116, 12, white, bold=True)
-    _text(
-        canvas,
-        "어떤 진단 변화가 추천을 만들었는지 확인할 수 있다.",
-        499,
-        96,
-        9,
-        HexColor("#D5ECF5"),
-    )
+    _rect(canvas, 531, 113, 276, 72, NAVY)
+    _text(canvas, "재현 경로", 547, 158, 10, HexColor("#A7E8F4"), bold=True)
+    _text(canvas, "data/samples/synthetic-tile.png", 547, 138, 9, white, bold=True)
+    _text(canvas, "제3자 데이터·개인 이미지 없이 재실행", 547, 122, 8.5, HexColor("#D5ECF5"))
 
 
 def _page_five(canvas: Canvas, assets: Path, data: PortfolioData) -> None:
@@ -642,30 +620,46 @@ def _page_six(canvas: Canvas) -> None:
         _text(canvas, heading, x + 16, 378, 15, NAVY, bold=True)
         for index, item in enumerate(bullets):
             _bullet(canvas, x + 16, 335 - index * 38, item, ORANGE if heading == "한계" else CYAN)
-    _rect(canvas, MARGIN, 114, 764, 89, NAVY)
-    _text(canvas, "Repository", MARGIN + 18, 171, 10, HexColor("#A7E8F4"), bold=True)
+    _rect(canvas, MARGIN, 104, 764, 99, NAVY)
+    _text(
+        canvas,
+        "Repository · 실행 · 비공개 Notion",
+        MARGIN + 18,
+        178,
+        10,
+        HexColor("#A7E8F4"),
+        bold=True,
+    )
     _text(
         canvas,
         "https://github.com/dansojo/opencv-preprocessing-advisor",
         MARGIN + 18,
-        145,
-        12,
+        157,
+        10,
         white,
         bold=True,
     )
     _text(
         canvas,
-        "README, canonical case study, experiment results, evidence map, and reproducible scripts",
+        "streamlit run app.py  |  합성 샘플: data/samples/synthetic-tile.png",
         MARGIN + 18,
-        125,
+        137,
         9,
+        HexColor("#D5ECF5"),
+    )
+    _text(
+        canvas,
+        "Notion (verified private): https://app.notion.com/p/3aed0dc3cc1d81c0977fd982867f94e1",
+        MARGIN + 18,
+        119,
+        8.5,
         HexColor("#D5ECF5"),
     )
     _text(
         canvas,
         "포트폴리오는 구현 가능한 주장과 검증 가능한 한계를 함께 제시한다.",
         MARGIN,
-        83,
+        76,
         11,
         CYAN,
         bold=True,
@@ -681,13 +675,14 @@ def build_pdf(output_path: Path, assets_dir: Path) -> Path:
         "workflow.png",
         "synthetic-advice-comparison.png",
         "mvtec-tile-best-confusion-matrix.png",
+        "streamlit-advisor-synthetic.png",
     )
     missing = [name for name in required_assets if not (assets_dir / name).is_file()]
     if missing:
         raise FileNotFoundError(f"Missing portfolio assets: {', '.join(missing)}")
 
     data = load_portfolio_data(assets_dir)
-    _register_korean_fonts()
+    _register_korean_fonts(assets_dir)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     canvas = Canvas(
         str(output_path), pagesize=(PAGE_WIDTH, PAGE_HEIGHT), pageCompression=1, invariant=1

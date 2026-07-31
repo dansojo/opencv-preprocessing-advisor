@@ -46,6 +46,10 @@ Streamlit/CLI는 같은 서비스 계층을 호출합니다. 진단과 후보 �
 
 ![합성 타일에서의 추천 후보 비교](docs/portfolio/assets/synthetic-advice-comparison.png)
 
+아래는 같은 합성 타일을 실제 Streamlit 화면에서 분석한 캡처입니다. 개인·고객 데이터나 MVTec 원본 이미지는 포함하지 않습니다.
+
+![합성 타일을 분석한 Streamlit Advisor 화면](docs/portfolio/assets/streamlit-advisor-synthetic.png)
+
 ## 데이터셋 검증: 원본이 이긴 것도 결과다
 
 MVTec AD `tile/test`의 상태 폴더에서 `crack`, `glue_strip`, `good`, `gray_stroke`, `oil`, `rough`를 6개 분류 클래스로 해석한 제한된 분류 사례입니다. GT mask나 anomaly localization은 사용하지 않았으며, 아래 수치는 공식 MVTec anomaly-detection metric이 아닙니다.
@@ -83,14 +87,19 @@ cd opencv-preprocessing-advisor
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e .
+python -m pip install -r requirements-dev.txt
+python scripts/build_portfolio_assets.py --output docs/portfolio/assets --sample data/samples/synthetic-tile.png
+python scripts/build_portfolio_pdf.py --assets docs/portfolio/assets --output output/pdf/opencv-preprocessing-advisor-portfolio.pdf
 streamlit run app.py
 ```
+
+포트폴리오 이미지와 PDF 빌드는 저장소에 포함된 `docs/portfolio/fonts/NotoSansKR-Regular.ttf`와 [SIL Open Font License](docs/portfolio/fonts/OFL.txt)를 사용합니다. 따라서 빌드 머신에 별도의 한글 글꼴을 설치할 필요가 없으며, 글꼴 파일과 라이선스는 함께 유지해야 합니다.
 
 합성 데이터로 전체 경로를 확인하거나, 이미지·클래스 폴더를 직접 실행할 수 있습니다.
 
 ```powershell
 python -m opencv_preprocessing_advisor.cli self-check --output outputs/self-check
-opencv-prep analyze-image --image data/samples/example.png --profile auto
+opencv-prep analyze-image --image data/samples/synthetic-tile.png --profile auto
 opencv-prep benchmark --dataset "C:\path\to\class-folder-dataset" --folds 5 --pipelines original,lab-clahe,clahe-bilateral --features combined --classifiers svm,knn,rtrees
 ```
 

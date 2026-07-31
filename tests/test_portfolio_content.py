@@ -202,11 +202,7 @@ def test_claim_validator_rejects_hyphenated_openai_project_api_keys(tmp_path):
     )
     readme = copied_root / "README.md"
     readme.write_text(
-        readme.read_text(encoding="utf-8")
-        + "\nproject_api_key = "
-        + "s"
-        + "k-proj-"
-        + "a" * 24,
+        readme.read_text(encoding="utf-8") + "\nproject_api_key = " + "s" + "k-proj-" + "a" * 24,
         encoding="utf-8",
     )
 
@@ -288,6 +284,21 @@ def test_public_release_checklist_records_the_private_notion_gate():
     assert "private" in content.casefold()
     assert "explicit owner approval" in content.casefold()
     assert "anonymous" in content.casefold()
+
+
+def test_clean_machine_portfolio_dependencies_and_synthetic_sample_are_documented():
+    development_requirements = (PROJECT_ROOT / "requirements-dev.txt").read_text(encoding="utf-8")
+    for dependency in ("reportlab", "pypdf", "pdfplumber"):
+        assert dependency in development_requirements
+
+    sample = PROJECT_ROOT / "data" / "samples" / "synthetic-tile.png"
+    assert sample.read_bytes().startswith(b"\x89PNG")
+
+    for readme_name in ("README.md", "README_EN.md"):
+        content = (PROJECT_ROOT / readme_name).read_text(encoding="utf-8")
+        assert "python -m pip install -r requirements-dev.txt" in content
+        assert "data/samples/synthetic-tile.png" in content
+        assert "docs/portfolio/assets/streamlit-advisor-synthetic.png" in content
 
 
 def test_case_study_is_a_complete_canonical_source_document():

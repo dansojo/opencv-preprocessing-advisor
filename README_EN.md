@@ -42,6 +42,10 @@ The project-generated synthetic example compares candidates with their score lab
 
 ![Synthetic tile recommendation comparison](docs/portfolio/assets/synthetic-advice-comparison.png)
 
+This is a real Streamlit capture from analyzing that same synthetic tile. It contains no private, customer, or MVTec source image.
+
+![Streamlit Advisor analyzing the synthetic tile](docs/portfolio/assets/streamlit-advisor-synthetic.png)
+
 ## Dataset result: the baseline won
 
 This is a limited classification case that interprets MVTec AD `tile/test` status folders as six classes. It does not use GT masks or anomaly localization, and is not an official MVTec anomaly-detection metric.
@@ -79,12 +83,17 @@ cd opencv-preprocessing-advisor
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e .
+python -m pip install -r requirements-dev.txt
+python scripts/build_portfolio_assets.py --output docs/portfolio/assets --sample data/samples/synthetic-tile.png
+python scripts/build_portfolio_pdf.py --assets docs/portfolio/assets --output output/pdf/opencv-preprocessing-advisor-portfolio.pdf
 streamlit run app.py
 ```
 
+The portfolio image and PDF builders always use the committed `docs/portfolio/fonts/NotoSansKR-Regular.ttf` font, distributed with its [SIL Open Font License](docs/portfolio/fonts/OFL.txt). No Korean system font is required on the build machine; keep the font and license together.
+
 ```powershell
 python -m opencv_preprocessing_advisor.cli self-check --output outputs/self-check
-opencv-prep analyze-image --image data/samples/example.png --profile auto
+opencv-prep analyze-image --image data/samples/synthetic-tile.png --profile auto
 opencv-prep benchmark --dataset "C:\path\to\class-folder-dataset" --folds 5 --pipelines original,lab-clahe,clahe-bilateral --features combined --classifiers svm,knn,rtrees
 ```
 

@@ -100,7 +100,10 @@ def test_day_ten_explains_that_larger_clahe_grids_use_smaller_local_tiles() -> N
     assert "tileGridSize`\uc758 \uc22b\uc790\uac00 \ucee4\uc9c8\uc218\ub85d" in day_ten
     assert "\uac01 \ud0c0\uc77c\uc740 \ub354 \uc791\uc544\uc9c0\uace0" in day_ten
     assert "\uacb0\uacfc\ub3c4 \ub354 \uad6d\uc18c\uc801" in day_ten
-    assert "grid\uac00 \uc791\uc544\uc9c0\uba74 \ub354 \uad6d\uc18c\uc801\uc778 \uacb0\uacfc" not in day_ten
+    assert (
+        "grid\uac00 \uc791\uc544\uc9c0\uba74 \ub354 \uad6d\uc18c\uc801\uc778 \uacb0\uacfc"
+        not in day_ten
+    )
 
 
 def test_hog_exercise_changes_the_configured_extractor_size_not_source_image_size() -> None:
