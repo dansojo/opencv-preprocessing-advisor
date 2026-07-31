@@ -1,5 +1,6 @@
 import hashlib
 import json
+import re
 from pathlib import Path
 from shutil import copytree, ignore_patterns
 
@@ -58,6 +59,25 @@ README_RESULT_ROWS = {
     "| 2 | CLAHE + Bilateral | RTrees | 0.766 | 0.731 |",
     "| 3 | LAB CLAHE | RTrees | 0.664 | 0.594 |",
 }
+NOTION_CASE_STUDY_HEADINGS = {
+    "프로젝트 요약",
+    "배경과 요구사항 변화",
+    "추천과 평가의 분리",
+    "이미지 진단",
+    "전처리 선택",
+    "특징",
+    "분류기",
+    "누수 방지와 재현성",
+    "MVTec 실험",
+    "실패 해석",
+    "트러블슈팅",
+    "한계와 다음 실험",
+}
+NOTION_CASE_STUDY_METRICS = {"117", "6", "0.804", "0.789"}
+GITHUB_MAIN_SOURCE_LINK = re.compile(
+    r"https://github\.com/dansojo/opencv-preprocessing-advisor/blob/main/"
+    r"(?:src|tests|scripts|docs)/[^)\s]+"
+)
 
 
 def test_claim_validator_accepts_current_repository():
@@ -198,3 +218,16 @@ def test_english_readme_mirrors_the_portfolio_claims_without_new_metrics():
     assert "](docs/portfolio/limitations.md)" in content
     assert "](output/pdf/opencv-preprocessing-advisor-portfolio.pdf)" in content
     assert "NOTION_CASE_STUDY_URL: pending" in content
+
+
+def test_local_notion_case_study_is_complete_and_traceable():
+    notion_case_study = PORTFOLIO_ROOT / "notion-case-study.md"
+
+    assert notion_case_study.is_file()
+    content = notion_case_study.read_text(encoding="utf-8")
+    assert all(f"## {heading}" in content for heading in NOTION_CASE_STUDY_HEADINGS)
+    assert NOTION_CASE_STUDY_METRICS <= set(re.findall(r"\d+(?:\.\d+)?", content))
+    assert len(set(GITHUB_MAIN_SOURCE_LINK.findall(content))) >= 15
+    assert "> [!WARNING] 휴리스틱 점수" in content
+    assert "> [!WARNING] MVTec 공식 지표" in content
+    assert "> [!TIP] 원본 파이프라인의 승리" in content
