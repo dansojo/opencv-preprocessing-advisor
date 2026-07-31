@@ -30,6 +30,12 @@ LEARNING_10DAY_REFERENCE_FILES = (
     "exercises.md",
     "progress-checklist.md",
 )
+LEARNING_10DAY_REFERENCE_TITLES = {
+    "technical-qa.md": "OpenCV 기술 Q&A",
+    "interview-qa.md": "프로젝트·면접 질문과 모범 답안",
+    "exercises.md": "실습 과제와 해설",
+    "progress-checklist.md": "진도 및 설명 능력 체크리스트",
+}
 LEARNING_10DAY_DAY_HEADINGS = (
     "오늘 답해야 할 핵심 질문",
     "개념과 원리",
@@ -43,8 +49,12 @@ LEARNING_10DAY_DAY_HEADINGS = (
     "완료 기준",
 )
 LEARNING_HUB_LOCAL_PATH_PATTERN = re.compile(r"(?i)(?:[A-Z]:\\Users\\|/(?:Users|home|tmp)/)")
-LEARNING_HUB_OFFICIAL_MVTEC_PATTERN = re.compile(
-    r"(?i)(?:official|공식)\s*(?:MVTec|mvtec).*?(?:claim|performance|성능|주장)"
+LEARNING_HUB_OFFICIAL_MVTEC_CLAIM_PATTERN = re.compile(
+    r"(?i)(?=.*\bmvtec\b)(?=.*(?:official|공식))(?=.*(?:benchmark|performance|성능|claim|주장))"
+)
+LEARNING_HUB_OFFICIAL_MVTEC_DISCLAIMER_PATTERN = re.compile(
+    r"(?i)(?:not\s+(?:an?\s+)?official|does\s+not\s+(?:claim|represent)|"
+    r"(?:공식|성능|주장).*?(?:아닌|아닙|않)|(?:아닌|아닙|않).*?(?:공식|성능|주장))"
 )
 REQUIRED_UI_PAGES = {
     "dataset_benchmark.py",
@@ -377,6 +387,16 @@ def _validate_portfolio_consistency(repo_root: Path, errors: list[str]) -> None:
             errors.append("Portfolio PDF does not match a fresh deterministic build.")
 
 
+def _makes_official_mvtec_claim(content: str) -> bool:
+    """Return whether a line claims official MVTec benchmark performance."""
+    for line in content.splitlines():
+        if LEARNING_HUB_OFFICIAL_MVTEC_CLAIM_PATTERN.search(
+            line
+        ) and not LEARNING_HUB_OFFICIAL_MVTEC_DISCLAIMER_PATTERN.search(line):
+            return True
+    return False
+
+
 def validate_learning_hub(repo_root: Path) -> list[str]:
     """Return content-contract errors for the canonical ten-day learning hub."""
     errors: list[str] = []
@@ -402,6 +422,17 @@ def validate_learning_hub(repo_root: Path) -> list[str]:
                     f"{(LEARNING_10DAY_DIR / filename).as_posix()}: missing heading: {heading}."
                 )
 
+    for filename, title in LEARNING_10DAY_REFERENCE_TITLES.items():
+        reference_path = hub_directory / filename
+        if not reference_path.is_file():
+            continue
+        first_line = reference_path.read_text(encoding="utf-8").splitlines()
+        if not first_line or first_line[0] != f"# {title}":
+            errors.append(
+                f"{(LEARNING_10DAY_DIR / filename).as_posix()}: "
+                f"must start with exact H1 title: # {title}."
+            )
+
     for filename in required_files:
         source_path = hub_directory / filename
         if not source_path.is_file():
@@ -410,7 +441,7 @@ def validate_learning_hub(repo_root: Path) -> list[str]:
         display_path = (LEARNING_10DAY_DIR / filename).as_posix()
         if LEARNING_HUB_LOCAL_PATH_PATTERN.search(content):
             errors.append(f"{display_path}: contains a forbidden local path.")
-        if LEARNING_HUB_OFFICIAL_MVTEC_PATTERN.search(content):
+        if _makes_official_mvtec_claim(content):
             errors.append(f"{display_path}: makes an official-MVTec claim.")
         for target in _markdown_link_targets(content):
             target_path = _local_link_target(repo_root, source_path, target)
@@ -498,7 +529,7 @@ def validate_claims(repo_root: Path) -> list[str]:
     _validate_markdown_links(repo_root, errors)
     _validate_public_safety(repo_root, errors)
     _validate_portfolio_consistency(repo_root, errors)
-    return errors
+    return list(dict.fromkeys(errors))
 
 
 def main() -> None:
