@@ -5,7 +5,7 @@
 ## 유도형: 입력과 최소 코드를 함께 따라가는 10개
 
 ## EX1: BGR 입력 계약 확인
-### 난이도
+### 선수 지식
 유도형 · ★☆☆
 ### 문제
 이미지를 읽고 shape, dtype, 채널별 평균을 출력한 뒤 BGR인지 확인한다.
@@ -21,7 +21,7 @@
 채널 순서·dtype·shape를 모두 명시하고, RGB 변환을 전처리로 오해하지 않으면 통과.
 
 ## EX2: uint8 overflow 재현과 수정
-### 난이도
+### 선수 지식
 유도형 · ★☆☆
 ### 문제
 `image + 40`과 포화 덧셈의 차이를 작은 배열로 재현한다.
@@ -37,7 +37,7 @@ NumPy `uint8` 덧셈은 modulo가 될 수 있으므로 `cv2.add(image, 40)` 또�
 wrap-around 원인과 clipping 결과를 숫자로 보여 주면 통과.
 
 ## EX3: BGR, HSV, LAB 채널 관찰
-### 난이도
+### 선수 지식
 유도형 · ★☆☆
 ### 문제
 한 이미지를 BGR, HSV, LAB로 변환해 각 채널의 평균·표준편차를 표로 만든다.
@@ -53,7 +53,7 @@ HSV는 hue/saturation 관찰, LAB는 밝기 L 분리 관찰에 쓴다고 기록�
 색 공간을 “더 좋은 공간”이 아니라 목적별 표현으로 설명하면 통과.
 
 ## EX4: 프로젝트 진단표 만들기
-### 난이도
+### 선수 지식
 유도형 · ★★☆
 ### 문제
 원본 이미지의 모든 `ImageDiagnostics` 필드를 표로 출력한다.
@@ -69,7 +69,7 @@ HSV는 hue/saturation 관찰, LAB는 밝기 L 분리 관찰에 쓴다고 기록�
 13개 항목과 “단일 지표는 충분하지 않다”는 해석이 있으면 통과.
 
 ## EX5: LAB CLAHE 전후 비교
-### 난이도
+### 선수 지식
 유도형 · ★★☆
 ### 문제
 `apply_lab_clahe` 전후의 local contrast와 clipping 비율을 비교한다.
@@ -85,7 +85,7 @@ L 채널만 CLAHE 처리하므로 색상 성분을 직접 평활화하지 않는
 `clipLimit`, `tileGridSize` 의미와 trade-off를 적으면 통과.
 
 ## EX6: 세 필터의 noise 가정 비교
-### 난이도
+### 선수 지식
 유도형 · ★★☆
 ### 문제
 Gaussian, median, bilateral 결과를 원본과 비교한다.
@@ -101,7 +101,7 @@ median은 impulse noise 후보, Gaussian은 일반 평활화, bilateral은 에�
 필터 이름만 나열하지 않고 oversmoothing 가능성을 판단하면 통과.
 
 ## EX7: 명시적 blur 뒤 Canny
-### 난이도
+### 선수 지식
 유도형 · ★★☆
 ### 문제
 원본 Canny와 Gaussian blur 후 Canny를 비교한다.
@@ -117,7 +117,7 @@ blur는 Canny의 자동 단계가 아니므로 코드에 분리해 쓴다. 에�
 Canny 단계와 사전 평활화를 구분하면 통과.
 
 ## EX8: morphology blackhat 실험
-### 난이도
+### 선수 지식
 유도형 · ★★☆
 ### 문제
 밝은 배경의 어두운 선을 강조하는 blackhat을 세 kernel 모양으로 비교한다.
@@ -133,7 +133,7 @@ kernel은 물체보다 큰 배경 구조를 가정한다. 선 방향과 두께�
 구조 요소의 크기·모양이 결과를 바꾼다는 설명이 있으면 통과.
 
 ## EX9: HOG descriptor 계약 확인
-### 난이도
+### 선수 지식
 유도형 · ★★☆
 ### 문제
 `HOGExtractor(size=(128,128))`의 두 번 transform 결과가 같은지 확인한다.
@@ -149,7 +149,7 @@ matrix shape, dtype, 결정성 assert.
 원본 크기와 configured size를 구별하면 통과.
 
 ## EX10: 작은 feature matrix 표준화
-### 난이도
+### 선수 지식
 유도형 · ★★☆
 ### 문제
 훈련 행으로만 `Standardizer`를 fit하고 test 행을 transform한다.
@@ -167,7 +167,7 @@ fit과 transform의 역할, test fold 미사용 이유를 설명하면 통과.
 ## 분석형: 관찰에서 가설과 검증을 설계하는 10개
 
 ## EX11: 엔트로피 상승의 원인 분석
-### 난이도
+### 선수 지식
 분석형 · ★★☆
 ### 문제
 CLAHE 뒤 엔트로피가 오른 사례에서 “개선”인지 “노이즈 증폭”인지 판단 절차를 설계한다.
@@ -183,7 +183,7 @@ noise estimate, sharpness, edge density를 함께 본다.
 단일 수치 결론을 피하고 반증 조건을 쓰면 통과.
 
 ## EX12: 조명 불균일 이미지의 후보 순위
-### 난이도
+### 선수 지식
 분석형 · ★★☆
 ### 문제
 조명 불균일도가 높은 이미지에 대해 normalize, auto gamma, LAB CLAHE의 실험 순서를 제안한다.
@@ -199,7 +199,7 @@ noise estimate, sharpness, edge density를 함께 본다.
 원본 baseline과 실패 조건을 넣으면 통과.
 
 ## EX13: filter kernel ablation 표 설계
-### 난이도
+### 선수 지식
 분석형 · ★★★
 ### 문제
 Gaussian과 median의 kernel 3, 5, 7을 비교하는 표와 해석 규칙을 설계한다.
@@ -215,7 +215,7 @@ kernel 외에는 입력·dtype·평가 지표를 고정한다.
 통제 변수와 oversmoothing 확인란이 있으면 통과.
 
 ## EX14: threshold 실패 사례 진단
-### 난이도
+### 선수 지식
 분석형 · ★★☆
 ### 문제
 전역 threshold가 배경 그라데이션에서 실패하는 이유와 대안을 비교한다.
@@ -231,7 +231,7 @@ kernel 외에는 입력·dtype·평가 지표를 고정한다.
 대안의 새 실패 가능성까지 쓰면 통과.
 
 ## EX15: contour와 component 선택 근거
-### 난이도
+### 선수 지식
 분석형 · ★★☆
 ### 문제
 이진 마스크에서 “결함 개수와 면적”을 구할 때 contour와 components 중 하나를 선택하고 반대 선택의 장단점을 쓴다.
@@ -247,7 +247,7 @@ kernel 외에는 입력·dtype·평가 지표를 고정한다.
 문제 요구에 따라 선택하고 이진화 품질을 전제로 쓰면 통과.
 
 ## EX16: 색 히스토그램의 공간 정보 손실 증명
-### 난이도
+### 선수 지식
 분석형 · ★★★
 ### 문제
 같은 색 픽셀 개수지만 배치가 다른 두 이미지를 만들어 히스토그램의 한계를 보인다.
@@ -263,7 +263,7 @@ kernel 외에는 입력·dtype·평가 지표를 고정한다.
 “히스토그램이 나쁘다” 대신 어떤 정보를 버리는지 보이면 통과.
 
 ## EX17: HOG resize 영향 분석
-### 난이도
+### 선수 지식
 분석형 · ★★★
 ### 문제
 같은 이미지를 다른 aspect ratio로 resize했을 때 HOG가 어떻게 달라질지 가설을 세운다.
@@ -279,7 +279,7 @@ kernel 외에는 입력·dtype·평가 지표를 고정한다.
 비교 조건을 다시 맞춰야 한다는 결론이 있으면 통과.
 
 ## EX18: Macro F1과 accuracy가 갈리는 예 만들기
-### 난이도
+### 선수 지식
 분석형 · ★★★
 ### 문제
 다수 클래스만 잘 맞혀 accuracy는 높고 Macro F1은 낮은 예측 배열을 만든다.
@@ -295,7 +295,7 @@ confusion matrix, accuracy, Macro F1, 해석.
 지표 정의와 실제 오류 사례를 연결하면 통과.
 
 ## EX19: stratified split 감사
-### 난이도
+### 선수 지식
 분석형 · ★★★
 ### 문제
 불균형 label 배열에 `stratified_folds`를 적용해 각 test fold의 클래스 수를 감사한다.
@@ -311,7 +311,7 @@ seed가 바뀌면 개별 인덱스는 달라도 클래스별 균형 원칙은 �
 분포 확인과 group leakage 한계를 함께 쓰면 통과.
 
 ## EX20: 원본 우세 결과의 반증 계획
-### 난이도
+### 선수 지식
 분석형 · ★★★
 ### 문제
 Original이 CLAHE 후보보다 높은 Macro F1을 보인 결과에 대해 세 개의 가능한 가설과 검증 실험을 쓴다.
@@ -329,7 +329,7 @@ class별 혼동, feature 분포, parameter ablation을 분리한다.
 ## 재구현형: 빈 화면에서 프로젝트 경로를 다시 만드는 10개
 
 ## EX21: Unicode-safe decode 재구현
-### 난이도
+### 선수 지식
 재구현형 · ★★★
 ### 문제
 `decode_image(path)`를 별도 파일에 테스트 우선으로 재구현한다.
@@ -345,7 +345,7 @@ class별 혼동, feature 분포, parameter ablation을 분리한다.
 RED→GREEN 기록과 3채널 uint8 검증이 있으면 통과.
 
 ## EX22: LAB CLAHE 함수 재구현
-### 난이도
+### 선수 지식
 재구현형 · ★★★
 ### 문제
 입력 shape/dtype을 보존하는 `apply_lab_clahe`를 테스트 우선으로 작성한다.
@@ -361,7 +361,7 @@ L,a,b를 merge해 BGR로 돌리고 출력이 입력과 같은 shape·dtype인지
 색 채널 보존 의도와 parameter validation을 구현하면 통과.
 
 ## EX23: diagnostic delta 계산 재구현
-### 난이도
+### 선수 지식
 재구현형 · ★★★
 ### 문제
 두 진단 dataclass에서 absolute delta와 percent delta를 만드는 함수를 작성한다.
@@ -377,7 +377,7 @@ L,a,b를 merge해 BGR로 돌리고 출력이 입력과 같은 shape·dtype인지
 모든 필드 순회와 0 분모 케이스를 다루면 통과.
 
 ## EX24: YAML pipeline mini catalog 재구현
-### 난이도
+### 선수 지식
 재구현형 · ★★★
 ### 문제
 두 단계 transform을 가진 작은 YAML을 읽어 순서대로 실행하는 catalog를 만든다.
@@ -393,7 +393,7 @@ transform 이름을 callable registry에서 찾아 실행한다.
 순서·유효성·중간 결과를 모두 검증하면 통과.
 
 ## EX25: profile-weight score 재구현
-### 난이도
+### 선수 지식
 재구현형 · ★★★
 ### 문제
 두 진단 변화와 가중치 dict를 받아 0~100 범위의 단순 suitability score를 작성한다.
@@ -409,7 +409,7 @@ local contrast·noise·clipping이 다른 두 후보.
 점수 범위·가중치 검증·비성능 경계가 있으면 통과.
 
 ## EX26: 고정 길이 색 히스토그램 재구현
-### 난이도
+### 선수 지식
 재구현형 · ★★★
 ### 문제
 HSV H, HSV S, LAB L의 32-bin 히스토그램을 이어 붙이고 합이 1인 feature를 만든다.
@@ -425,7 +425,7 @@ H 채널의 범위는 0~180, 나머지는 0~256이다.
 세 범위와 정규화 계약을 정확히 구현하면 통과.
 
 ## EX27: SIFT BoW fit/transform 재구현 계획
-### 난이도
+### 선수 지식
 재구현형 · ★★★
 ### 문제
 코드를 모두 쓰기 전에 fold-safe SIFT BoW의 인터페이스와 테스트를 설계한다.
@@ -441,7 +441,7 @@ test fold descriptor는 vocabulary clustering에 절대 넣지 않는다.
 누수 방지 테스트와 부족 descriptor 실패 경로가 있으면 통과.
 
 ## EX28: OpenCV classifier adapter 재구현
-### 난이도
+### 선수 지식
 재구현형 · ★★★
 ### 문제
 `fit(features, labels)`와 `predict(features)` 계약을 따르는 kNN 어댑터를 작성한다.
@@ -457,7 +457,7 @@ fit 전 predict 오류, shape 오류, 성공 예측 테스트.
 세 실패 경로와 one-pass prediction을 통과시키면 통과.
 
 ## EX29: fold-local cross validation 재구현
-### 난이도
+### 선수 지식
 재구현형 · ★★★
 ### 문제
 주어진 folds에 대해 scaler·classifier를 매 fold 새로 만들어 accuracy와 Macro F1을 평균내는 함수를 작성한다.
@@ -473,7 +473,7 @@ fit 객체를 fold 밖에 만들지 않는다. confusion matrix도 test labels�
 누수 없는 fit 위치와 fold별 기록이 있으면 통과.
 
 ## EX30: 재현 가능한 mini benchmark 보고서
-### 난이도
+### 선수 지식
 재구현형 · ★★★
 ### 문제
 합성 도형 세 클래스로 original과 한 전처리 후보를 비교하고 CSV/JSON 보고서를 만든다.

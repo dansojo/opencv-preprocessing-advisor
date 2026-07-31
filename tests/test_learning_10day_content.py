@@ -121,7 +121,7 @@ def test_independent_references_are_numbered_complete_and_project_grounded() -> 
     _assert_blocks_have_required_headings(
         technical_text,
         TECH_Q,
-        ("한 문장 답", "상세 설명", "프로젝트 근거", "주의/실패"),
+        ("한 문장 답", "상세 설명", "프로젝트 근거", "주의할 오해"),
     )
     _assert_blocks_have_required_headings(
         interview_text,
@@ -131,7 +131,7 @@ def test_independent_references_are_numbered_complete_and_project_grounded() -> 
     _assert_blocks_have_required_headings(
         exercise_text,
         EXERCISE,
-        ("난이도", "문제", "입력", "요구 산출물", "힌트", "해설", "평가 기준"),
+        ("선수 지식", "문제", "입력", "요구 산출물", "힌트", "해설", "평가 기준"),
     )
 
     assert all(f"[Day {day}](day-{day:02d}.md)" in progress_text for day in range(1, 11))
