@@ -129,6 +129,22 @@ def test_independent_references_are_numbered_complete_and_project_grounded() -> 
     assert "not official" in interview_text
 
 
+def test_technical_qa_describes_the_repository_hog_wrapper_contract_precisely() -> None:
+    """Do not turn this wrapper's configured HOG geometry into a universal rule."""
+    text = (LEARNING_10DAY / "technical-qa.md").read_text(encoding="utf-8")
+    start = text.index("## TQ31:")
+    end = text.index("## TQ32:", start)
+    block = text[start:end]
+
+    assert "window=size" in block
+    assert "block=(16,16)" in block
+    assert "stride=(8,8)" in block
+    assert "cell=(8,8)" in block
+    assert "9 bins" in block
+    assert "wrapper contract" in block
+    assert "보편 규칙이 아니다" in block
+
+
 def test_learning_hub_validator_enforces_the_scaffold_contract(tmp_path: Path) -> None:
     missing_errors = validate_portfolio.validate_learning_hub(tmp_path)
     assert "Missing ten-day learning hub directory: docs/learning-10day" in missing_errors

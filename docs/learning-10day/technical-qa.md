@@ -302,15 +302,15 @@ Canny 결과처럼 끊긴 경계를 하나의 물체 영역처럼 해석하지 �
 ### 주의/실패
 정규화된 히스토그램 길이가 고정이라는 사실을 조명·크기 불변성 보장으로 해석하지 않는다.
 
-## TQ31: HOG 입력 크기는 왜 16의 배수여야 하나?
+## TQ31: 이 저장소의 HOG 입력 크기는 왜 16의 배수여야 하나?
 ### 한 문장 답
-이 구현의 block·cell 설정이 16×16 window와 8×8 cell을 전제로 하므로 descriptor 크기가 맞아야 한다.
+이 저장소의 wrapper contract는 configured `size`의 각 차원을 16의 배수로 제한하지만, 이는 HOG의 보편 규칙이 아니다.
 ### 상세 설명
-소스 이미지 크기가 아니라 extractor에 전달한 configured `size`가 조건을 만족해야 하며, 입력은 그 크기로 resize된다.
+현재 `cv2.HOGDescriptor`는 `window=size`, `block=(16,16)`, `stride=(8,8)`, `cell=(8,8)`, `9 bins`로 구성된다. 이 wrapper는 그 구성에 맞춰 `size`를 16의 배수로 더 엄격하게 제한하고 입력을 그 window 크기로 resize한다. 다른 HOG window·block·stride 구성에는 다른 호환 조건이 적용될 수 있으므로 “16의 배수”를 보편 규칙으로 설명하면 안 된다.
 ### 프로젝트 근거
 `HOGExtractor.__init__`의 검증과 `cv2.HOGDescriptor` 설정은 [features.py](../../src/opencv_preprocessing_advisor/features.py)에 있다.
 ### 주의/실패
-원본이 130×128이라는 사실만으로 HOG가 실패한다고 말하면 구현을 잘못 이해한 것이다.
+원본이 130×128이라는 사실만으로 HOG가 실패한다고 말하면 구현을 잘못 이해한 것이다. 이 코드에서 검사하는 대상은 원본 크기가 아니라 configured `size`다.
 
 ## TQ32: Gabor 질감 통계는 무엇을 요약하는가?
 ### 한 문장 답
