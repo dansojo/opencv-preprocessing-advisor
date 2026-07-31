@@ -40,6 +40,24 @@ REQUIRED_LIMITATION_HEADINGS = {
     "GT와 MVTec 공식 평가의 부재",
     "고전 특징과 분류기의 한계",
 }
+README_ASSET_PATHS = {
+    "docs/portfolio/assets/architecture.png",
+    "docs/portfolio/assets/workflow.png",
+    "docs/portfolio/assets/synthetic-advice-comparison.png",
+    "docs/portfolio/assets/mvtec-tile-best-confusion-matrix.png",
+}
+README_EVIDENCE_SOURCES = {
+    "src/opencv_preprocessing_advisor/diagnostics.py",
+    "src/opencv_preprocessing_advisor/transforms.py",
+    "src/opencv_preprocessing_advisor/features.py",
+    "src/opencv_preprocessing_advisor/evaluation.py",
+    "src/opencv_preprocessing_advisor/reports.py",
+}
+README_RESULT_ROWS = {
+    "| 1 | Original | RTrees | 0.804 | **0.789** |",
+    "| 2 | CLAHE + Bilateral | RTrees | 0.766 | 0.731 |",
+    "| 3 | LAB CLAHE | RTrees | 0.664 | 0.594 |",
+}
 
 
 def test_claim_validator_accepts_current_repository():
@@ -150,3 +168,33 @@ def test_limitations_distinguishes_heuristic_dataset_gt_and_feature_limits():
     content = limitations.read_text(encoding="utf-8")
     assert all(f"## {heading}" in content for heading in REQUIRED_LIMITATION_HEADINGS)
     assert "not classification accuracy" in content
+
+
+def test_korean_readme_is_a_visual_evidence_driven_portfolio_entrypoint():
+    content = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
+
+    assert all(path in content for path in README_ASSET_PATHS)
+    assert all(f"]({source})" in content for source in README_EVIDENCE_SOURCES)
+    assert "휴리스틱 점수는 정확도가 아닙니다" in content
+    assert "`tile/test`" in content
+    assert "6개 분류 클래스로 해석" in content
+    assert README_RESULT_ROWS <= set(content.splitlines())
+    assert "pytest -q" in content
+    assert "## 빠른 시작" in content
+    assert "](docs/portfolio/limitations.md)" in content
+    assert "](output/pdf/opencv-preprocessing-advisor-portfolio.pdf)" in content
+    assert "NOTION_CASE_STUDY_URL: pending" in content
+
+
+def test_english_readme_mirrors_the_portfolio_claims_without_new_metrics():
+    content = (PROJECT_ROOT / "README_EN.md").read_text(encoding="utf-8")
+
+    assert all(path in content for path in README_ASSET_PATHS)
+    assert "heuristic, not an accuracy estimate" in content
+    assert "117 images" in content
+    assert "six classes" in content
+    assert README_RESULT_ROWS <= set(content.splitlines())
+    assert "pytest -q" in content
+    assert "](docs/portfolio/limitations.md)" in content
+    assert "](output/pdf/opencv-preprocessing-advisor-portfolio.pdf)" in content
+    assert "NOTION_CASE_STUDY_URL: pending" in content

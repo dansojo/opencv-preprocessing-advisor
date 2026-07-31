@@ -1,131 +1,70 @@
 # OpenCV Preprocessing Advisor
 
-이미지의 상태를 수치로 진단하고, 목적에 맞는 OpenCV 전처리 파이프라인 3개를 근거와 함께 추천하며, 실제 분류 데이터셋에서는 교차검증으로 효과를 검증하는 포트폴리오 프로젝트입니다.
+[English](README_EN.md) · [사례 연구](docs/portfolio/case-study.md) · [실험 결과](docs/portfolio/experiment-results.md) · [한계](docs/portfolio/limitations.md)
 
-> 핵심 원칙: 보기 좋아진 이미지를 좋은 전처리라고 단정하지 않습니다. 단일 이미지는 설명 가능한 휴리스틱으로 탐색하고, 실제 효과는 데이터셋 평가로 검증합니다.
+이미지를 보기 좋게 만드는 전처리와, 다운스트림 분류에 실제로 도움이 되는 전처리는 다를 수 있습니다. 이 프로젝트는 단일 이미지를 수치로 진단해 **설명 가능한 Top 3 후보**를 제안하고, 레이블이 있는 데이터셋에서는 같은 후보를 **교차 검증**으로 검증합니다.
 
-## 무엇을 보여주는 프로젝트인가
+> 단일 이미지의 추천은 탐색 우선순위입니다. **휴리스틱 점수는 정확도가 아닙니다**. 성능 결론은 데이터셋 평가에서만 냅니다.
 
-- 밝기, 클리핑, 전역·국소 대비, entropy, 선명도, 노이즈, 조명 균일성, edge, 색상 특성을 OpenCV로 측정합니다.
-- 정규화, gamma, CLAHE, Gaussian·median·bilateral filter, unsharp mask, morphology를 단일 단계가 아닌 재현 가능한 파이프라인으로 구성합니다.
-- HOG, HSV/LAB histogram, Sobel·Laplacian·Gabor 통계를 특징으로 사용합니다.
-- `cv2.ml`의 SVM, kNN, RTrees를 동일한 stratified cross-validation 조건에서 비교합니다.
-- 추천 이유, 경고, 점수 구성요소, 중간 이미지, 클래스별 지표, 시간, 혼동행렬을 저장합니다.
-- 설정 파일 hash, OpenCV 버전, seed를 보고서에 남겨 재현성을 확보합니다.
+## 한눈에 보는 결과
 
-## 두 가지 실행 모드
-
-### 1. 단일 이미지 Advisor
-
-GT와 라벨이 없는 새 이미지 한 장에도 사용할 수 있습니다.
-
-1. 이미지 상태 진단
-2. 목적 프로필(`auto`, `shape`, `color`, `texture`) 선택
-3. 후보 파이프라인 실제 적용
-4. 전후 지표 변화로 적합도 계산
-5. 상위 3개 파이프라인, 단계별 이미지, 이유와 위험 요소 출력
-
-이 점수는 정확도나 성공 확률이 아니라 **탐색 우선순위를 정하는 휴리스틱**입니다.
-
-### 2. Dataset Benchmark
-
-`root/class_name/image.png` 구조의 데이터셋에서 전처리 효과를 직접 비교합니다.
-
-1. 클래스별 이미지를 결정적인 순서로 탐색
-2. stratified K-fold 분할
-3. OpenCV 전처리 적용
-4. OpenCV 특징 추출
-5. 학습 fold에서만 표준화한 뒤 `cv2.ml` 분류기 학습
-6. Macro F1, accuracy, 클래스별 precision/recall/F1, 처리 시간, 혼동행렬 출력
-
-## MVTec tile 사례 연구
-
-첫 검증 데이터는 로컬의 MVTec AD `tile/test` 폴더입니다. 이상치 GT를 사용하지 않고 `crack`, `glue_strip`, `good`, `gray_stroke`, `oil`, `rough`를 6개 분류 클래스로 해석했습니다.
+| 검증 범위 | 관찰된 결과 | 근거 |
+| --- | --- | --- |
+| MVTec tile 상태 폴더 분류 사례 | 117 images, 6개 클래스, stratified 5-fold, seed 42 | [평가 프로토콜](docs/portfolio/experiment-results.md#정확한-평가-프로토콜) |
+| 최고 조합 | Original + RTrees — Accuracy **0.804**, Macro F1 **0.789** | [리더보드](docs/portfolio/experiment-results.md#리더보드) |
+| 단일 이미지 사용성 | 진단 변화·이유·경고를 포함한 Top 3 후보 | [추천 설계](docs/portfolio/case-study.md#단일-이미지-추천) |
 
 - 이미지: 117장
-- 평가: stratified 5-fold, seed 42
-- 특징: HOG + HSV/LAB histogram + Sobel/Laplacian/Gabor 통계
-- 분류기: SVM, kNN, RTrees
 
-| 순위 | 전처리 | 분류기 | Accuracy | Macro F1 |
-|---:|---|---|---:|---:|
+## 문제를 두 개로 나눈 이유
+
+새 이미지 한 장에는 레이블이 없으므로, Advisor는 밝기·대비·노이즈·에지·색상·클리핑 같은 [진단값](src/opencv_preprocessing_advisor/diagnostics.py) 변화로 후보를 비교합니다. 반대로 Dataset Benchmark는 같은 전처리 후 [고전 특징](src/opencv_preprocessing_advisor/features.py)과 [OpenCV 분류기](src/opencv_preprocessing_advisor/classifiers.py)를 비교해 Macro F1과 accuracy를 측정합니다. 이 분리는 “시각적으로 강한 효과”를 “분류 성능 향상”으로 오해하지 않기 위한 설계입니다.
+
+![입력부터 추천과 교차 검증까지의 흐름](docs/portfolio/assets/workflow.png)
+
+## OpenCV 근거: 구현과 테스트까지 연결
+
+| 영역 | 적용한 OpenCV 기법 | 구현 · 회귀 테스트 |
+| --- | --- | --- |
+| 이미지 진단 | 밝기, 대비, entropy, 선명도, 노이즈, 에지, 색상, clipping | [코드](src/opencv_preprocessing_advisor/diagnostics.py) · [테스트](tests/test_diagnostics.py) |
+| 전처리 후보 | normalize, gamma, CLAHE, Gaussian/median/bilateral, morphology | [코드](src/opencv_preprocessing_advisor/transforms.py) · [테스트](tests/test_transforms.py) |
+| 특징 | HOG, HSV/LAB histogram, Sobel/Laplacian/Gabor 통계 | [코드](src/opencv_preprocessing_advisor/features.py) · [테스트](tests/test_features.py) |
+| 공정한 비교 | stratified K-fold, fold-local scaling, Macro F1 | [코드](src/opencv_preprocessing_advisor/evaluation.py) · [테스트](tests/test_evaluation.py) |
+| 재현 가능한 보고 | CSV, JSON, PNG, config hash, OpenCV version, seed | [코드](src/opencv_preprocessing_advisor/reports.py) · [테스트](tests/test_reports.py) |
+
+전체 기법과 선택 이유는 [OpenCV 증거 맵](docs/portfolio/evidence-map.md)에서 확인할 수 있습니다.
+
+## 구조: UI가 아닌 서비스와 증거가 중심
+
+Streamlit/CLI는 같은 서비스 계층을 호출합니다. 진단과 후보 실행, 특징·평가, 보고서를 분리해 UI 밖에서도 테스트와 재생성이 가능하도록 구성했습니다.
+
+![서비스와 보고서 중심의 아키텍처](docs/portfolio/assets/architecture.png)
+
+## 추천은 결과와 위험을 함께 보여준다
+
+아래 이미지는 프로젝트 코드가 생성한 합성 저대비 타일 예시입니다. 후보별 점수만 제시하지 않고, 진단 변화와 과도한 평활화·에지·색 손실 같은 경고를 함께 남깁니다. LAB L-channel CLAHE는 밝기 채널만 조정해 색상 관계를 덜 교란하려는 선택이며, 어느 필터도 항상 우수하다고 가정하지 않습니다. [설계 판단 자세히 보기](docs/portfolio/case-study.md#단일-이미지-추천)
+
+![합성 타일에서의 추천 후보 비교](docs/portfolio/assets/synthetic-advice-comparison.png)
+
+## 데이터셋 검증: 원본이 이긴 것도 결과다
+
+MVTec AD `tile/test`의 상태 폴더에서 `crack`, `glue_strip`, `good`, `gray_stroke`, `oil`, `rough`를 6개 분류 클래스로 해석한 제한된 분류 사례입니다. GT mask나 anomaly localization은 사용하지 않았으며, 아래 수치는 공식 MVTec anomaly-detection metric이 아닙니다.
+
+| 순위 | Pipeline | Classifier | Accuracy | Macro F1 |
+| ---: | --- | --- | ---: | ---: |
 | 1 | Original | RTrees | 0.804 | **0.789** |
 | 2 | CLAHE + Bilateral | RTrees | 0.766 | 0.731 |
 | 3 | LAB CLAHE | RTrees | 0.664 | 0.594 |
 
-결과는 전처리를 더 많이 적용한다고 성능이 자동으로 좋아지지 않는다는 점을 보여줍니다. 이 데이터와 특징 조합에서는 원본이 가장 강했고, 강한 국소 대비 향상은 타일 질감의 클래스 구분 정보를 왜곡했을 가능성이 있습니다. 이는 원인에 대한 가설이며 다른 데이터셋으로 일반화할 수 없습니다.
+원본 + RTrees가 세 후보 중 최고였습니다. 이 관찰은 이 데이터·고정 특징·선택한 분할에서 대비 강화나 평활화가 항상 더 좋은 표현을 만들지 않는다는 뜻입니다. 원인에 대한 해석은 가설이며 다른 데이터셋에 일반화하지 않습니다. [실험 설정·혼동행렬 읽기·해석](docs/portfolio/experiment-results.md)을 함께 보세요.
 
-![MVTec tile 최고 조합 혼동행렬](docs/images/mvtec-tile-best-confusion-matrix.png)
+![MVTec tile 최고 조합 혼동행렬](docs/portfolio/assets/mvtec-tile-best-confusion-matrix.png)
 
-## 빠른 시작
+## 재현성과 테스트
 
-Python 3.11 이상을 권장합니다.
-
-```powershell
-git clone <repository-url>
-cd opencv-preprocessing-advisor
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -e .
-streamlit run app.py
-```
-
-전체 흐름을 합성 데이터로 확인하려면:
-
-```powershell
-python -m opencv_preprocessing_advisor.cli self-check --output outputs/self-check
-```
-
-이미지 한 장 분석:
-
-```powershell
-opencv-prep analyze-image --image data/samples/example.png --profile auto
-```
-
-클래스 폴더 벤치마크:
-
-```powershell
-opencv-prep benchmark `
-  --dataset "C:\path\to\class-folder-dataset" `
-  --folds 5 `
-  --pipelines original,lab-clahe,clahe-bilateral `
-  --features combined `
-  --classifiers svm,knn,rtrees
-```
-
-## 산출물
-
-각 실행은 덮어쓰기 방지를 위해 고유 폴더에 저장됩니다.
-
-```text
-outputs/
-├─ image_advisor/<run-id>/
-│  ├─ comparison.png
-│  ├─ diagnostics.csv
-│  ├─ metric_changes.csv
-│  ├─ recommendations.json
-│  └─ steps/<pipeline-id>/*.png
-└─ benchmark/<run-id>/
-   ├─ top_pipelines.csv
-   ├─ leaderboard.csv
-   ├─ fold_metrics.csv
-   ├─ class_metrics.csv
-   ├─ timings.csv
-   ├─ run_config.json
-   └─ confusion_matrices/*.png
-```
-
-## 프로젝트 구조
-
-```text
-config/       파이프라인 및 점수 설정
-src/          진단, 변환, 특징, 평가, 서비스, 보고서, CLI
-ui/           Streamlit 다중 페이지 화면
-tests/        단위·통합·UI 실행 회귀 테스트
-docs/         설계, 구현 계획, 결과 이미지
-```
-
-## 검증
+- 동일한 fold 계획에서 SVM, kNN, RTrees를 비교하고, 표준화기는 훈련 fold에만 적합해 누수를 막습니다. [평가 코드](src/opencv_preprocessing_advisor/evaluation.py) · [테스트](tests/test_evaluation.py)
+- benchmark의 수치와 생성 근거는 경로를 포함하지 않는 [재생성 증거 요약](docs/portfolio/benchmark-evidence.json)에 남깁니다.
+- 단위·통합·UI 회귀 테스트는 [`tests/`](tests)에서, 포트폴리오 주장 계약은 [`tests/test_portfolio_content.py`](tests/test_portfolio_content.py)에서 확인합니다.
 
 ```powershell
 pytest -q
@@ -134,4 +73,38 @@ ruff format --check .
 python -m opencv_preprocessing_advisor.cli self-check
 ```
 
-현재 구현은 딥러닝, 외부 비전 API, 이상치 GT 평가를 사용하지 않습니다. 단일 이미지 추천과 데이터셋 성능 검증의 역할을 분리한 것이 설계의 핵심입니다. 알려진 환경 문제는 [TROUBLESHOOTING.md](TROUBLESHOOTING.md)를 참고하세요.
+## 빠른 시작
+
+Python 3.11 이상을 권장합니다.
+
+```powershell
+git clone https://github.com/dansojo/opencv-preprocessing-advisor.git
+cd opencv-preprocessing-advisor
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e .
+streamlit run app.py
+```
+
+합성 데이터로 전체 경로를 확인하거나, 이미지·클래스 폴더를 직접 실행할 수 있습니다.
+
+```powershell
+python -m opencv_preprocessing_advisor.cli self-check --output outputs/self-check
+opencv-prep analyze-image --image data/samples/example.png --profile auto
+opencv-prep benchmark --dataset "C:\path\to\class-folder-dataset" --folds 5 --pipelines original,lab-clahe,clahe-bilateral --features combined --classifiers svm,knn,rtrees
+```
+
+## 적용 범위와 한계
+
+이 프로젝트는 모든 OpenCV API, 딥러닝, 또는 공식 MVTec anomaly-detection 평가를 주장하지 않습니다. 117장·6클래스 사례는 데이터셋 특이적이며, SIFT는 구현돼 있지만 현재 BenchmarkService feature profile에는 노출되지 않습니다. 운영 적용 전에는 목표 데이터·오류 비용·시각 요구에 맞춰 별도 검증이 필요합니다. [전체 한계와 다음 실험](docs/portfolio/limitations.md)
+
+## 포트폴리오 자료
+
+- [6페이지 PDF 포트폴리오](output/pdf/opencv-preprocessing-advisor-portfolio.pdf) — 안정된 빌드 산출물 경로입니다. PDF는 포트폴리오 빌드 단계에서 생성됩니다.
+- [정본 사례 연구](docs/portfolio/case-study.md) · [실험 결과](docs/portfolio/experiment-results.md) · [증거 맵](docs/portfolio/evidence-map.md)
+
+### Notion 케이스 스터디
+
+<!-- NOTION_CASE_STUDY_URL: pending -->
+
+Notion 공개본은 동일한 정본 자료를 바탕으로 최종 검토 후 연결합니다. 현재는 위 저장소 문서가 검증 가능한 원본입니다.
