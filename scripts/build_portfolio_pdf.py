@@ -206,12 +206,6 @@ def _register_korean_fonts() -> tuple[str, str]:
     raise FileNotFoundError("A Korean TrueType font (Malgun Gothic or Nanum Gothic) is required.")
 
 
-def _image_size(path: Path, max_width: float, max_height: float) -> tuple[float, float]:
-    width, height = ImageReader(str(path)).getSize()
-    scale = min(max_width / width, max_height / height)
-    return width * scale, height * scale
-
-
 def _draw_image(
     canvas: Canvas,
     path: Path,
@@ -220,9 +214,12 @@ def _draw_image(
     max_width: float,
     max_height: float,
 ) -> tuple[float, float]:
-    width, height = _image_size(path, max_width, max_height)
+    image = ImageReader(str(path))
+    width, height = image.getSize()
+    scale = min(max_width / width, max_height / height)
+    width, height = width * scale, height * scale
     canvas.drawImage(
-        str(path), x + (max_width - width) / 2, y + (max_height - height) / 2, width, height
+        image, x + (max_width - width) / 2, y + (max_height - height) / 2, width, height
     )
     return width, height
 

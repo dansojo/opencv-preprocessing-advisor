@@ -1,6 +1,8 @@
 import hashlib
 import json
 import re
+import subprocess
+import sys
 from pathlib import Path
 from shutil import copytree, ignore_patterns
 
@@ -100,6 +102,19 @@ def test_claim_validator_accepts_current_repository():
     assert validate_claims(PROJECT_ROOT) == []
 
 
+def test_claim_validator_runs_as_a_script():
+    result = subprocess.run(
+        [sys.executable, "scripts/validate_portfolio.py"],
+        cwd=PROJECT_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "Portfolio validation passed." in result.stdout
+
+
 def test_claim_validator_rejects_incorrect_benchmark_accuracy(tmp_path):
     copied_root = tmp_path / "repository"
     copytree(
@@ -173,6 +188,64 @@ def test_claim_validator_rejects_public_safety_markers_and_broken_markdown(tmp_p
         "README.md: contains an unresolved Notion-link marker.",
         "README.md: Markdown link target does not exist: docs/missing.md.",
         "README.md: Markdown anchor does not exist: docs/portfolio/case-study.md#does-not-exist.",
+    }
+    assert expected_errors <= set(errors)
+
+
+def test_claim_validator_scans_tracked_extensionless_environment_files(tmp_path):
+    copied_root = tmp_path / "repository"
+    copytree(
+        PROJECT_ROOT,
+        copied_root,
+        ignore=ignore_patterns(".git", ".pytest_cache", ".ruff_cache", ".superpowers"),
+    )
+    environment_filename = "." + "env"
+    environment_file = copied_root / environment_filename
+    environment_file.write_text("GH_TOKEN=ghp_" + "a" * 36, encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=copied_root, check=True)
+    subprocess.run(["git", "add", "-f", "."], cwd=copied_root, check=True)
+
+    errors = validate_claims(copied_root)
+
+    assert f"{environment_filename}: contains a GitHub personal-access-token marker." in errors
+    assert ".gitignore: contains an environment-file reference." not in errors
+    assert "Portfolio PDF does not match a fresh deterministic build." not in errors
+
+
+def test_claim_validator_checks_reference_links_autolinks_and_fenced_headings(tmp_path):
+    copied_root = tmp_path / "repository"
+    copytree(
+        PROJECT_ROOT,
+        copied_root,
+        ignore=ignore_patterns(".git", ".pytest_cache", ".ruff_cache", ".superpowers"),
+    )
+    (copied_root / "docs" / "anchors.md").write_text(
+        "# Visible heading\n\n```markdown\n# Hidden heading\n```\n",
+        encoding="utf-8",
+    )
+    readme = copied_root / "README.md"
+    readme.write_text(
+        "\n".join(
+            (
+                readme.read_text(encoding="utf-8"),
+                "[visible reference][visible]",
+                "[missing reference][missing-target]",
+                "[fenced heading][hidden-heading]",
+                "[visible]: docs/anchors.md#visible-heading",
+                "[missing-target]: docs/reference-missing.md",
+                "[hidden-heading]: docs/anchors.md#hidden-heading",
+                "<https://github.com/dansojo/opencv-preprocessing-advisor/blob/main/docs/autolink-missing.md>",
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    errors = validate_claims(copied_root)
+
+    expected_errors = {
+        "README.md: Markdown link target does not exist: docs/reference-missing.md.",
+        "README.md: Markdown anchor does not exist: docs/anchors.md#hidden-heading.",
+        "README.md: Markdown link target does not exist: docs/autolink-missing.md.",
     }
     assert expected_errors <= set(errors)
 

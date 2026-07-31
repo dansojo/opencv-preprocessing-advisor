@@ -100,6 +100,31 @@ def test_build_pdf_is_byte_deterministic(tmp_path: Path) -> None:
     assert first_output.read_bytes() == second_output.read_bytes()
 
 
+def test_committed_pdf_matches_a_fresh_deterministic_build(tmp_path: Path) -> None:
+    rebuilt_pdf = build_pdf(
+        tmp_path / "opencv-preprocessing-advisor-portfolio.pdf",
+        PROJECT_ROOT / "docs" / "portfolio" / "assets",
+    )
+    committed_pdf = PROJECT_ROOT / "output" / "pdf" / "opencv-preprocessing-advisor-portfolio.pdf"
+
+    assert committed_pdf.read_bytes() == rebuilt_pdf.read_bytes()
+
+
+def test_claim_validator_rejects_a_committed_pdf_that_differs_from_a_fresh_build(
+    tmp_path: Path,
+) -> None:
+    copied_root = tmp_path / "project"
+    shutil.copytree(PROJECT_ROOT, copied_root, ignore=shutil.ignore_patterns(".git", ".venv"))
+    committed_pdf = copied_root / "output" / "pdf" / "opencv-preprocessing-advisor-portfolio.pdf"
+    committed_pdf.write_bytes(committed_pdf.read_bytes() + b"\n")
+
+    from scripts.validate_portfolio import validate_claims
+
+    errors = validate_claims(copied_root)
+
+    assert "Portfolio PDF does not match a fresh deterministic build." in errors
+
+
 def test_committed_pdf_is_marked_as_binary_for_git_diff_checks() -> None:
     result = subprocess.run(
         [

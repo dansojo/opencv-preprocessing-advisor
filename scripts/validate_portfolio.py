@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+import tempfile
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
@@ -49,12 +50,21 @@ BENCHMARK_ROW_PATTERN = re.compile(
     r"(?P<accuracy>\d+\.\d+)\s*\|\s*\*\*(?P<macro_f1>\d+\.\d+)\*\*\s*\|\s*$"
 )
 MARKDOWN_LINK_PATTERN = re.compile(r"\[[^\]]*\]\((?P<target><[^>]+>|[^\s)]+)(?:\s+\"[^\"]*\")?\)")
+MARKDOWN_REFERENCE_DEFINITION_PATTERN = re.compile(
+    r"^[ \t]{0,3}\[(?P<label>[^\]]+)\]:[ \t]*(?P<target><[^>]+>|\S+)"
+)
+MARKDOWN_REFERENCE_LINK_PATTERN = re.compile(r"(?<!\!)\[(?P<text>[^\]]+)\]\[(?P<label>[^\]]*)\]")
+MARKDOWN_AUTOLINK_PATTERN = re.compile(r"<(?P<target>(?:https?://|mailto:)[^\s>]+)>")
 WINDOWS_USER_PATH_PATTERN = re.compile(r"(?i)C:\\Users\\(?P<user>[A-Za-z0-9][A-Za-z0-9._-]*)")
 SAFETY_PATTERNS = (
     ("a GitHub OAuth token marker", re.compile(r"\bgho_[A-Za-z0-9]{20,}\b")),
     (
         "a GitHub personal-access-token marker",
         re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}\b"),
+    ),
+    (
+        "a GitHub personal-access-token marker",
+        re.compile(r"\bghp_[A-Za-z0-9]{20,}\b"),
     ),
     ("an API key marker", re.compile(r"\bsk-[A-Za-z0-9]{20,}\b")),
     ("an environment-file reference", re.compile(r"(?<![\w.\\])\.env(?![\w.-])")),
@@ -108,7 +118,7 @@ def _readme_metrics(readme_text: str) -> dict[str, str]:
 
 
 def _tracked_text_files(repo_root: Path) -> list[Path]:
-    """Return tracked text files, with a deterministic no-Git fallback for tests."""
+    """Return tracked text candidates, including extensionless files, for validation."""
     result = subprocess.run(
         ["git", "-C", str(repo_root), "ls-files", "-z"],
         check=False,
@@ -126,7 +136,9 @@ def _tracked_text_files(repo_root: Path) -> list[Path]:
         (
             path
             for path in candidates
-            if path.suffix.casefold() in TEXT_SUFFIXES or path.name == ".gitignore"
+            if path.suffix.casefold() in TEXT_SUFFIXES
+            or path.name == ".gitignore"
+            or not path.suffix
         ),
         key=lambda path: path.as_posix(),
     )
@@ -138,10 +150,29 @@ def _markdown_anchor(heading: str) -> str:
     return re.sub(r"\s+", "-", heading)
 
 
+def _markdown_lines_outside_fences(content: str) -> list[str]:
+    """Return Markdown lines that are not part of a fenced code block."""
+    lines: list[str] = []
+    fence_character: str | None = None
+    fence_length = 0
+    for line in content.splitlines():
+        match = re.match(r"^ {0,3}(?P<fence>`{3,}|~{3,})", line)
+        if fence_character is None:
+            if match:
+                fence_character = match["fence"][0]
+                fence_length = len(match["fence"])
+            else:
+                lines.append(line)
+        elif match and match["fence"][0] == fence_character and len(match["fence"]) >= fence_length:
+            fence_character = None
+            fence_length = 0
+    return lines
+
+
 def _markdown_anchors(markdown_path: Path) -> set[str]:
     anchors: set[str] = set()
     used: dict[str, int] = {}
-    for line in markdown_path.read_text(encoding="utf-8").splitlines():
+    for line in _markdown_lines_outside_fences(markdown_path.read_text(encoding="utf-8")):
         match = re.match(r"^#{1,6}\s+(.+?)\s*#*\s*$", line)
         if not match:
             continue
@@ -150,6 +181,33 @@ def _markdown_anchors(markdown_path: Path) -> set[str]:
         used[base_anchor] = suffix + 1
         anchors.add(base_anchor if suffix == 0 else f"{base_anchor}-{suffix}")
     return anchors
+
+
+def _normalize_reference_label(label: str) -> str:
+    return re.sub(r"\s+", " ", label).strip().casefold()
+
+
+def _markdown_link_targets(content: str) -> list[str]:
+    """Return inline, reference-style, and URI-autolink targets outside code fences."""
+    lines = _markdown_lines_outside_fences(content)
+    references: dict[str, str] = {}
+    for line in lines:
+        if match := MARKDOWN_REFERENCE_DEFINITION_PATTERN.match(line):
+            references[_normalize_reference_label(match["label"])] = match["target"].strip("<>")
+
+    targets: list[str] = []
+    for line in lines:
+        if MARKDOWN_REFERENCE_DEFINITION_PATTERN.match(line):
+            continue
+        targets.extend(
+            match["target"].strip("<>") for match in MARKDOWN_LINK_PATTERN.finditer(line)
+        )
+        for match in MARKDOWN_REFERENCE_LINK_PATTERN.finditer(line):
+            label = match["label"] or match["text"]
+            if target := references.get(_normalize_reference_label(label)):
+                targets.append(target)
+        targets.extend(match["target"] for match in MARKDOWN_AUTOLINK_PATTERN.finditer(line))
+    return targets
 
 
 def _is_intentional_troubleshooting_example(relative_path: Path, user: str) -> bool:
@@ -179,6 +237,11 @@ def _validate_public_safety(repo_root: Path, errors: list[str]) -> None:
                 _append_once(errors, f"{display_path}: contains a local Windows user path.")
 
         for description, pattern in SAFETY_PATTERNS:
+            if (
+                relative_path.name == ".gitignore"
+                and description == "an environment-file reference"
+            ):
+                continue
             if relative_path.is_relative_to(INTERNAL_PLAN_PREFIX) and description in (
                 INTERNAL_PLAN_TEMPLATE_MARKERS
             ):
@@ -206,8 +269,7 @@ def _validate_markdown_links(repo_root: Path, errors: list[str]) -> None:
         source_path = repo_root / relative_path
         content = source_path.read_text(encoding="utf-8")
         display_path = relative_path.as_posix()
-        for match in MARKDOWN_LINK_PATTERN.finditer(content):
-            target = match["target"].strip("<>")
+        for target in _markdown_link_targets(content):
             target_path = _local_link_target(repo_root, source_path, target)
             if target_path is None:
                 continue
@@ -266,6 +328,17 @@ def _validate_portfolio_consistency(repo_root: Path, errors: list[str]) -> None:
     ):
         if required_text not in pdf_text:
             errors.append(f"Portfolio PDF is missing required evidence: {required_text}.")
+
+    try:
+        from scripts.build_portfolio_pdf import build_pdf
+    except ModuleNotFoundError:
+        from build_portfolio_pdf import build_pdf
+
+    with tempfile.TemporaryDirectory() as temporary_directory:
+        rebuilt_pdf = Path(temporary_directory) / PORTFOLIO_PDF.name
+        build_pdf(rebuilt_pdf, repo_root / "docs" / "portfolio" / "assets")
+        if rebuilt_pdf.read_bytes() != pdf.read_bytes():
+            errors.append("Portfolio PDF does not match a fresh deterministic build.")
 
 
 def validate_claims(repo_root: Path) -> list[str]:
