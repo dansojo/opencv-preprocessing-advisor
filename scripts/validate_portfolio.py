@@ -50,7 +50,8 @@ LEARNING_10DAY_DAY_HEADINGS = (
 )
 LEARNING_HUB_LOCAL_PATH_PATTERN = re.compile(r"(?i)(?:[A-Z]:\\Users\\|/(?:Users|home|tmp)/)")
 LEARNING_HUB_OFFICIAL_MVTEC_CLAIM_PATTERN = re.compile(
-    r"(?i)(?=.*\bmvtec\b)(?=.*(?:official|공식))(?=.*(?:benchmark|performance|성능|claim|주장))"
+    r"(?i)(?=.*(?<![a-z0-9_])mvtec(?![a-z0-9_]))"
+    r"(?=.*(?:official|공식))(?=.*(?:benchmark|performance|성능|claim|주장))"
 )
 LEARNING_HUB_OFFICIAL_MVTEC_DISCLAIMER_PATTERN = re.compile(
     r"(?i)(?:not\s+(?:an?\s+)?official|does\s+not\s+(?:claim|represent)|"

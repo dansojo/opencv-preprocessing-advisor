@@ -120,6 +120,8 @@ def test_learning_hub_validator_rejects_mutated_or_empty_reference_titles(
     "claim",
     (
         "MVTec 공식 benchmark 성능을 재현했다.",
+        "MVTec의 공식 benchmark 성능을 재현했다.",
+        "MVTec에서 공식 benchmark 성능을 재현했다.",
         "Official MVTec benchmark performance was reproduced.",
         "MVTec benchmark의 공식 성능을 주장한다.",
     ),
@@ -137,6 +139,28 @@ def test_learning_hub_validator_rejects_official_mvtec_performance_claims(
     errors = validate_portfolio.validate_learning_hub(tmp_path)
 
     assert "docs/learning-10day/README.md: makes an official-MVTec claim." in errors
+
+
+@pytest.mark.parametrize(
+    "non_mvtec_token",
+    (
+        "MVTecology 공식 benchmark 성능을 재현했다.",
+        "preMVTec 공식 benchmark 성능을 재현했다.",
+    ),
+)
+def test_learning_hub_validator_ignores_longer_ascii_mvtec_tokens(
+    tmp_path: Path, non_mvtec_token: str
+) -> None:
+    copied_hub = tmp_path / "docs" / "learning-10day"
+    copytree(LEARNING_10DAY, copied_hub)
+    readme_path = copied_hub / "README.md"
+    readme_path.write_text(
+        readme_path.read_text(encoding="utf-8") + f"\n{non_mvtec_token}\n", encoding="utf-8"
+    )
+
+    errors = validate_portfolio.validate_learning_hub(tmp_path)
+
+    assert "docs/learning-10day/README.md: makes an official-MVTec claim." not in errors
 
 
 @pytest.mark.parametrize(
